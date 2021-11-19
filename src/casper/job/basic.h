@@ -182,7 +182,7 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
          */
         template <typename S>
         void casper::job::Basic<S>::Publish (const S& a_step, const Status& a_status,
-                                                  const char* const a_i18n_key, const std::map<std::string, Json::Value>& a_arguments)
+                                             const char* const a_i18n_key, const std::map<std::string, Json::Value>& a_arguments)
         {
             CC_DEBUG_FAIL_IF_NOT_AT_THREAD(thread_id_);
             ev::loop::beanstalkd::Job::Publish({
@@ -204,7 +204,7 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
          */
         template <typename S>
         void casper::job::Basic<S>::Publish (const double a_progress, const Status& a_status,
-                                                  const char* const a_i18n_key, const std::map<std::string, Json::Value>& a_arguments)
+                                             const char* const a_i18n_key, const std::map<std::string, Json::Value>& a_arguments)
         {
             CC_DEBUG_FAIL_IF_NOT_AT_THREAD(thread_id_);
             ev::loop::beanstalkd::Job::Publish({

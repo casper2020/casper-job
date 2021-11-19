@@ -53,12 +53,13 @@ namespace casper
                 
             private: // Data
                 
-                uint16_t       code_;
-                std::string    body_;
-                Json::Value    json_;
-                std::string    content_type_;
-                size_t         rtt_;
-                cc::Exception* exception_;
+                uint16_t                           code_;
+                std::map<std::string, std::string> headers_;
+                std::string                        body_;
+                Json::Value                        json_;
+                std::string                        content_type_;
+                size_t                             rtt_;
+                cc::Exception*                     exception_;
                 
             public: // Constructor(s) / Destructor
                 
@@ -80,6 +81,7 @@ namespace casper
                 Response (const Response& a_response)
                 {
                     code_         = a_response.code_;
+                    headers_      = a_response.headers_;
                     body_         = a_response.body_;
                     json_         = a_response.json_;
                     content_type_ = a_response.content_type_;
@@ -107,6 +109,7 @@ namespace casper
                 inline void operator = (Response const& a_response)
                 {
                     code_         = a_response.code_;
+                    headers_      = a_response.headers_;
                     body_         = a_response.body_;
                     json_.clear();
                     json_         = a_response.json_;
@@ -130,6 +133,7 @@ namespace casper
                 inline void Set (const uint16_t& a_code, const std::string& a_content_type, const std::string& a_body, const size_t& a_rtt, const bool a_parse = true)
                 {
                     code_         = a_code;
+                    headers_.clear();
                     body_         = a_body; // keeping body as string for log proposes
                     content_type_ = a_content_type;
                     if ( nullptr != exception_ ) {
@@ -145,6 +149,30 @@ namespace casper
                 }
                 
                 /**
+                 * @brief Keep track of an HTTP response, also parse body is it's JSON.
+                 *
+                 * @param a_code         Status code.
+                 * @param a_content_type Content-Type header value.
+                 * @param a_headers      HTTP headers.
+                 * @param a_body         Body.
+                 * @param a_rtt          Round time trip in milliseconds.
+                 */
+                inline void Set (const uint16_t& a_code, const std::string& a_content_type, const std::map<std::string, std::string>& a_headers, const std::string& a_body, const size_t& a_rtt)
+                {
+                    code_         = a_code;
+                    headers_      = a_headers;
+                    body_         = a_body;
+                    content_type_ = a_content_type;
+                    if ( nullptr != exception_ ) {
+                        delete exception_;
+                        exception_ = nullptr;
+                    }
+                    rtt_ = a_rtt;
+                    json_.clear(); json_ = Json::Value::null;
+                }
+                
+                
+                /**
                  * @brief Keep track of an HTTP response as error.
                  *
                  * @param a_code            Status code.
@@ -155,7 +183,8 @@ namespace casper
                  */
                 inline void Set (const uint16_t& a_code, const std::string& a_content_type, const std::string& a_error, const Json::Value& a_error_description, const size_t& a_rtt)
                 {
-                    code_         = a_code;
+                    code_ = a_code;
+                    headers_.clear();
                     body_.clear();
                     content_type_ = a_content_type;
                     if ( nullptr != exception_ ) {
@@ -191,6 +220,7 @@ namespace casper
                 inline void Set (const uint16_t a_code, const ::cc::Exception& a_exception)
                 {
                     code_ = a_code;
+                    headers_.clear();
                     if ( nullptr != exception_ ) {
                         delete exception_;
                     }
@@ -205,6 +235,7 @@ namespace casper
                 inline void Reset (const uint16_t a_code = 500)
                 {
                     code_         = a_code;
+                    headers_.clear();
                     body_.clear();
                     json_.clear();
                     json_         = Json::Value::null;
@@ -222,6 +253,14 @@ namespace casper
                 inline const uint16_t& code () const
                 {
                     return code_;
+                }
+                
+                /**
+                 * @return R/O access to HTTP headers.
+                 */
+                inline const std::map<std::string, std::string>& headers () const
+                {
+                    return headers_;
                 }
                 
                 /**

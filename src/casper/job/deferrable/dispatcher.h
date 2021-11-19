@@ -164,10 +164,12 @@ namespace casper
                         // ... untrack ...
                         const auto it = running_.find(a_deferred->id_);
                         if ( running_.end() == it ) {
-                            throw cc::Exception("Logic error, '%s' not found!", a_deferred->id_.c_str());
+                            // TODO: review old behaviour was:  throw cc::Exception("Logic error, '%s' not found!", a_deferred->id_.c_str());
+                            delete a_deferred;
+                        } else {
+                            delete it->second;
+                            running_.erase(it);
                         }
-                        delete it->second;
-                        running_.erase(it);
                     }
                 });
             }
