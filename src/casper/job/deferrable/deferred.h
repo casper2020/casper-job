@@ -45,7 +45,7 @@ namespace casper
         namespace deferrable
         {
                 
-            template <class A> // , class = std::enable_if<std::is_base_of<A, Arguments<A>>::value>>
+            template <class A> //, class = std::enable_if<std::is_base_of<A, Arguments<A>>::value>>
             class Deferred : public ::cc::NonCopyable, public ::cc::NonMovable
             {
 

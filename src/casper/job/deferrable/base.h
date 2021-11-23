@@ -112,7 +112,7 @@ namespace casper
                               const char* const a_i18n_key,
                               const std::map<std::string, Json::Value>& a_arguments);
 
-                void HandleDeferredRequestCompletion (std::function<uint16_t(Json::Value&)> a_callback, const Tracking& a_tracking);
+                void HandleDeferredRequestCompletion (const deferrable::Deferred<A>* a_deferred, std::function<uint16_t(Json::Value&)> a_callback, const Tracking& a_tracking);
 
             protected: // Method(s) / Function(s) - Helpers
 
@@ -354,19 +354,20 @@ namespace casper
                 //
                 // ... process response ...
                 //
-                HandleDeferredRequestCompletion([this, a_deferred](Json::Value& o_payload) -> uint16_t {
-                    // ... success?
-                    if ( 200 == a_deferred->response().code() && nullptr == a_deferred->response().exception() ) {
-                        // ... process ...
-                        return d_.on_deferred_request_completed_(a_deferred, o_payload);
-                    } else {
-                        // ... performed, but an error ocurred ...
-                        OnDeferredRequestFailed(a_deferred, o_payload);
-                    }
-                    // ... finalize ...
-                    return a_deferred->response().code();
-                }, a_deferred->tracking_);
-                
+                HandleDeferredRequestCompletion(a_deferred,
+                                                [this, a_deferred](Json::Value& o_payload) -> uint16_t {
+                                                    // ... success?
+                                                    if ( 200 == a_deferred->response().code() && nullptr == a_deferred->response().exception() ) {
+                                                        // ... process ...
+                                                        return d_.on_deferred_request_completed_(a_deferred, o_payload);
+                                                    } else {
+                                                        // ... performed, but an error ocurred ...
+                                                        OnDeferredRequestFailed(a_deferred, o_payload);
+                                                    }
+                                                    // ... finalize ...
+                                                    return a_deferred->response().code();
+                                                }, a_deferred->tracking_
+                );
             }
 
             /**
@@ -390,7 +391,7 @@ namespace casper
                         o_payload["error"] = a_deferred->response().body();
                     }
                 } else {
-                    throw cc::Exception(*exception);
+                    throw cc::CodedException(a_deferred->response().code(), "%s", exception->what());
                 }
             }
 
@@ -515,13 +516,14 @@ namespace casper
             /**
              * @brief Helper function to be called when a deferred request returned.
              *
+             * @param a_deferred Deferred request data.
              * @param a_callback Function to call:
              *                  - if returns 0 don't finalize job now ( still work to do );
              *                  - if no 0, or if an exception is catched finalize job immediatley.
              * @param o_payload JSON response to fill.
              */
             template <class A, typename S, S doneValue>
-            void casper::job::deferrable::Base<A, S, doneValue>::HandleDeferredRequestCompletion (std::function<uint16_t(Json::Value& o_payload)> a_callback, const Tracking& a_tracking)
+            void casper::job::deferrable::Base<A, S, doneValue>::HandleDeferredRequestCompletion (const deferrable::Deferred<A>* a_deferred, std::function<uint16_t(Json::Value& o_payload)> a_callback, const Tracking& a_tracking)
             {
                 CC_DEBUG_FAIL_IF_NOT_AT_THREAD(DeferrableBaseClassAlias::thread_id_);
                 
@@ -541,7 +543,11 @@ namespace casper
                         // ... set 'failed' response ...
                         code = DeferrableBaseClassAlias::SetFailedResponse(code, payload, response);
                     }
-                    
+                
+                } catch (const cc::CodedException& a_cc_coded_exception) {
+                    // ... set 'failed' response ...
+                    payload["error"] = a_cc_coded_exception.what();
+                    code = DeferrableBaseClassAlias::SetFailedResponse(a_cc_coded_exception.code_, payload, response);
                 } catch (const cc::Exception& a_cc_exception) {
                     // ... set internal server error ....
                     code = DeferrableBaseClassAlias::SetFailedResponse(
@@ -592,7 +598,8 @@ namespace casper
                                                                       CC_JOB_LOG_COLOR(LIGHT_RED) "%s" CC_LOGS_LOGGER_RESET_ATTRS " - %s: %s",
                                                                       "FAILED", "while publishing finished notification", a_ev_exception.what()
                                                         );
-                                                   }
+                                                   },
+                                                   /* a_mode */ ( true == a_deferred->arguments().Primitive() ? DeferrableBaseClassAlias::Mode::Gateway : DeferrableBaseClassAlias::Mode::Default )
                 );
             }
 

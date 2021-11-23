@@ -79,7 +79,7 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
 
         protected: // Inline Method(s) / Function(s)
 
-            const Json::Value& Payload (const Json::Value& a_payload);
+            const Json::Value& Payload (const Json::Value& a_payload, bool* o_broker = nullptr);
                             
         protected: // Method(s) / Function(s)
             
@@ -142,16 +142,25 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
         }
     
         /**
+         * @brief Extract 'true' payload from provided data.
+         *
+         * @param a_payload  Payload to inspect.
+         * @param o_broker   If not null, check if 'source' was nginx-broker.
+         *
          * @return Payload object reference.
          */
         template <typename S>
-        inline const Json::Value& casper::job::Basic<S>::Payload (const Json::Value& a_payload)
+        inline const Json::Value& casper::job::Basic<S>::Payload (const Json::Value& a_payload, bool* o_broker)
         {
             const ::cc::easy::JSON<::cc::Exception> json;
             const Json::Value c_ttr      = Json::Value(static_cast<Json::Int64>(TTR()));
             const Json::Value c_validity = Json::Value(static_cast<Json::Int64>(Validity()));
             // ... NGINX-BROKER 'jobify' module awareness ...
             if ( true == a_payload.isMember("body") && true == a_payload.isMember("headers") ) {
+                // ... check source?
+                if ( nullptr != o_broker ) {
+                    (*o_broker) = true; // TODO: validate "source" == " nginx-broker//*" ?
+                }
                 // ... read TTR and validity ...
                 const int64_t ttr      = static_cast<int64_t>(json.Get(a_payload["body"], "ttr", Json::ValueType::uintValue, &c_ttr).asUInt64());
                 const int64_t validity = static_cast<int64_t>(json.Get(a_payload["body"], "validity", Json::ValueType::uintValue, &c_validity).asUInt64());

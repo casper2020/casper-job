@@ -77,6 +77,10 @@ namespace casper
                     /* empty */
                 }
                 
+            public: // Method(s) / Function(s)
+                
+                virtual bool Primitive () const { return false; };
+                
             public: // Overloaded Operator(s)
                 
                 void operator = (Arguments const&)  = delete;  // assignment is not allowed
