@@ -162,10 +162,7 @@ namespace casper
             template <class A, typename S, S doneValue>
             void casper::job::deferrable::Base<A, S, doneValue>::Setup ()
             {
-                
                 DeferrableBaseClassAlias::Setup();
-                
-                InnerSetup();
                 
                 // ... sanity check ...
                 CC_ASSERT(nullptr != d_.dispatcher_);
@@ -391,7 +388,7 @@ namespace casper
                         o_payload["error"] = a_deferred->response().body();
                     }
                 } else {
-                    throw cc::CodedException(a_deferred->response().code(), "%s", exception->what());
+                    o_payload["error"] = exception->what();
                 }
             }
 
@@ -542,12 +539,7 @@ namespace casper
                     } else if ( 0 != code ) {
                         // ... set 'failed' response ...
                         code = DeferrableBaseClassAlias::SetFailedResponse(code, payload, response);
-                    }
-                
-                } catch (const cc::CodedException& a_cc_coded_exception) {
-                    // ... set 'failed' response ...
-                    payload["error"] = a_cc_coded_exception.what();
-                    code = DeferrableBaseClassAlias::SetFailedResponse(a_cc_coded_exception.code_, payload, response);
+                    }                
                 } catch (const cc::Exception& a_cc_exception) {
                     // ... set internal server error ....
                     code = DeferrableBaseClassAlias::SetFailedResponse(
