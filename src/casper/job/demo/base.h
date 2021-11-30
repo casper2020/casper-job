@@ -83,7 +83,7 @@ namespace casper
                 virtual void InnerRun (const int64_t& a_id, const Json::Value& a_payload, cc::easy::job::Job::Response& o_response)
                 {
                     // ... assuming BAD REQUEST ...
-                    o_response.code_ = 400;
+                    o_response.code_ = CC_STATUS_CODE_BAD_REQUEST;
 
                     //
                     // IN payload:
@@ -101,7 +101,7 @@ namespace casper
                     const Json::Value& payload = Payload(a_payload);
 
 
-                    o_response.code_    = 200;
+                    o_response.code_    = CC_STATUS_CODE_OK;
                     o_response.payload_ = Json::Value(Json::ValueType::objectValue);
                     o_response.payload_["__id__"]      = static_cast<Json::UInt64>(a_id);
                     o_response.payload_["__payload__"] = payload;

@@ -28,6 +28,8 @@
     #include "sys/bsd/process.h"
 #endif
 
+#include "cc/codes.h"
+
 #include "cc/exception.h"
 #include "cc/easy/json.h"
 #include "cc/i18n/singleton.h"
@@ -243,7 +245,7 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
 
             Json::FastWriter jfw; jfw.omitEndingLineFeed();
             
-            if ( 200 == a_response.code_ ) {
+            if ( CC_STATUS_CODE_OK == a_response.code_ ) {
                 // ... status ...
                 CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_INF, CC_JOB_LOG_STEP_OUT,
                                "Status: " CC_JOB_LOG_COLOR(GREEN) UINT16_FMT " - %s" CC_LOGS_LOGGER_RESET_ATTRS,

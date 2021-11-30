@@ -158,6 +158,9 @@ namespace casper
                         }
                         running_[a_deferred->id_] = a_deferred;
                     },
+                    /* is_tracked_ */ [this] (Deferred<A>* a_deferred) -> bool {
+                        return ( running_.end() != running_.find(a_deferred->id_) );
+                    },
                     /* on_untrack_ */ [this] (Deferred<A>* a_deferred) {
                         // ... log ...
                         callbacks_.on_log_tracking_(a_deferred->tracking_, CC_JOB_LOG_LEVEL_INF, CC_JOB_LOG_STEP_STATS, "Untrack: " + a_deferred->id_);

@@ -62,6 +62,7 @@ namespace casper
                 typedef struct {
                     deferrable::Dispatcher<A>*                                            dispatcher_;
                     std::function<uint16_t(const deferrable::Deferred<A>*, Json::Value&)> on_deferred_request_completed_;
+                    std::function<uint16_t(const deferrable::Deferred<A>*, Json::Value&)> on_deferred_request_failed_;
                 } D;
                 
             protected: // Helper(s)
@@ -140,6 +141,7 @@ namespace casper
                 CC_DEBUG_FAIL_IF_NOT_AT_THREAD(DeferrableBaseClassAlias::thread_id_);
                 d_.dispatcher_                    = nullptr;
                 d_.on_deferred_request_completed_ = nullptr;
+                d_.on_deferred_request_failed_    = nullptr;
             }
 
             /**
@@ -252,7 +254,7 @@ namespace casper
                 }
                     
                 // ... log ....
-                if ( 200 == o_response.code_ ) {
+                if ( CC_STATUS_CODE_OK == o_response.code_ ) {
                     // ... insanity checkpoint ...
                     CC_ASSERT(true == DeferrableBaseClassAlias::Deferred());
                     // ... status ...
@@ -354,12 +356,18 @@ namespace casper
                 HandleDeferredRequestCompletion(a_deferred,
                                                 [this, a_deferred](Json::Value& o_payload) -> uint16_t {
                                                     // ... success?
-                                                    if ( 200 == a_deferred->response().code() && nullptr == a_deferred->response().exception() ) {
+                                                    if ( CC_STATUS_CODE_OK == a_deferred->response().code() && nullptr == a_deferred->response().exception() ) {
                                                         // ... process ...
                                                         return d_.on_deferred_request_completed_(a_deferred, o_payload);
                                                     } else {
                                                         // ... performed, but an error ocurred ...
-                                                        OnDeferredRequestFailed(a_deferred, o_payload);
+                                                        if ( nullptr != d_.on_deferred_request_failed_ ) {
+                                                            // ... use job specific failure handler ...
+                                                            d_.on_deferred_request_failed_(a_deferred, o_payload);
+                                                        } else {
+                                                            // ... use default failure handler ...
+                                                            OnDeferredRequestFailed(a_deferred, o_payload);
+                                                        }
                                                     }
                                                     // ... finalize ...
                                                     return a_deferred->response().code();
@@ -527,13 +535,13 @@ namespace casper
                 Json::Value payload  = Json::Value(Json::ValueType::objectValue);
                 Json::Value response = Json::Value::null;
                 
-                uint16_t code = 500;
+                uint16_t code = CC_STATUS_CODE_INTERNAL_SERVER_ERROR;
                 
                 try {
                     // ... perform callback ...
                     code = a_callback(payload);
                     // ... success?
-                    if ( 200 == code ) {
+                    if ( CC_STATUS_CODE_OK == code ) {
                         // ... set 'completed' response ...
                         code = DeferrableBaseClassAlias::SetCompletedResponse(payload, response);
                     } else if ( 0 != code ) {
@@ -610,7 +618,7 @@ namespace casper
                 // ... log response ...
                 //
                 // ... success?
-                if ( 200 == a_response.code() ) {
+                if ( CC_STATUS_CODE_OK == a_response.code() ) {
                     // ... log response status code  ...
                     CASPER_JOB_LOG_DEFERRED(CC_JOB_LOG_LEVEL_INF, a_tracking, CC_JOB_LOG_STEP_STATUS,
                                             "{%s} - " UINT16_FMT ", %s",

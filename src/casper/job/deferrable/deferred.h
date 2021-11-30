@@ -68,6 +68,7 @@ namespace casper
                 
                 typedef struct {
                     std::function<void(Deferred<A>*)> on_track_;   //!< Owner should track this object.
+                    std::function<bool(Deferred<A>*)> is_tracked_; //!< Check if this object is being tracked.
                     std::function<void(Deferred<A>*)> on_untrack_; //!< Owner should untrack and dispose this object.
                 } LifeCycleHandler;
                 
@@ -207,7 +208,7 @@ namespace casper
             inline bool Deferred<A>::Tracked ()
             {
                 CC_DEBUG_FAIL_IF_NOT_AT_THREAD(thread_id_);
-                return ( nullptr != handler_.on_untrack_);
+                return ( nullptr != handler_.is_tracked_ ? handler_.is_tracked_(this) : false );
             }
                                                     
         } // end of namespace 'deferrable'

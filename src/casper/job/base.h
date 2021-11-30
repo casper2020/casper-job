@@ -23,7 +23,6 @@
 #define CASPER_JOB_BASE_H_
 
 #include "casper/job/basic.h"
-#include "casper/job/exceptions.h"
 
 namespace casper
 {
@@ -114,14 +113,14 @@ namespace casper
             );
 
             // ... assuming BAD REQUEST ...
-            o_response.code_ = 400;
+            o_response.code_ = CC_STATUS_CODE_BAD_REQUEST;
             
             // ... run ...
             try {
 
                 InnerRun(a_id, a_payload, o_response);
 
-            } catch (const ::casper::job::BadRequestException& a_br_exception) {
+            } catch (const ::cc::BadRequest& a_br_exception) {
                 // ... parsing error ...
                 o_response.code_ = ::casper::job::Basic<S>::SetBadRequest(/* a_i18n */ &::casper::job::Base<S, doneValue>::sk_i18n_error_,
                                                                              /* a_error */ {
@@ -129,6 +128,34 @@ namespace casper
                                                                                 /* why_  */ std::string(a_br_exception.what())
                                                                              },
                                                                              o_response.payload_
+                );
+            } catch (const ::cc::NotImplemented& a_ni_exception) {
+                // ... ISE ...
+                o_response.code_ = ::casper::job::Basic<S>::SetNotImplemented(/* a_i18n */ &::casper::job::Base<S, doneValue>::sk_i18n_error_,
+                                                                              /* a_error */ {
+                                                                                  /* code_ */ nullptr,
+                                                                                  /* why_  */ std::string(a_ni_exception.what())
+                                                                               },
+                                                                               o_response.payload_
+                );
+            } catch (const ::cc::InternalServerError& a_ise_exception) {
+                // ... ISE ...
+                o_response.code_ = ::casper::job::Basic<S>::SetInternalServerError(/* a_i18n */ &::casper::job::Base<S, doneValue>::sk_i18n_error_,
+                                                                                   /* a_error */ {
+                                                                                     /* code_ */ nullptr,
+                                                                                     /* why_  */ std::string(a_ise_exception.what())
+                                                                                   },
+                                                                                   o_response.payload_
+                );
+            } catch (const ::cc::CodedException& a_ce_exception) {
+                // ... ISE ...
+                o_response.code_ = ::casper::job::Basic<S>::SetError(a_ce_exception.code_,
+                                                                    /* a_i18n */ &::casper::job::Base<S, doneValue>::sk_i18n_error_,
+                                                                    /* a_error */ {
+                                                                        /* code_ */ nullptr,
+                                                                        /* why_  */ std::string(a_ce_exception.what())
+                                                                    },
+                                                                    o_response.payload_
                 );
             } catch (const ::cc::Exception& a_cc_exception) {
                 // ... parsing error ...
