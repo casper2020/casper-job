@@ -69,11 +69,16 @@ namespace casper
                 
                 D d_;
                 
+            private: // Data
+                
+                const bool sequentiable_;
+                
             public: // Constructor(s) / Destructor
                 
                 Base () = delete;
                 Base (const std::string& a_abbr, const std::string& a_tube,
-                      const ev::Loggable::Data& a_loggable_data, const cc::easy::job::Job::Config& a_config);
+                      const ev::Loggable::Data& a_loggable_data, const cc::easy::job::Job::Config& a_config,
+                      const bool a_sequentiable = true);
                 virtual ~Base ();
                 
             public: // Inherited Virtual Method(s) / Function(s) - from cc::easy::job::Runnable
@@ -131,17 +136,22 @@ namespace casper
              * param a_tube
              * param a_loggable_data
              * param a_config
+             * param a_sequentiable
              */
             template <class A, typename S, S doneValue>
             casper::job::deferrable::Base<A, S, doneValue>::Base::Base (const std::string& a_abbr, const std::string& a_tube,
-                                                                        const ev::Loggable::Data& a_loggable_data, const cc::easy::job::Job::Config& a_config)
+                                                                        const ev::Loggable::Data& a_loggable_data, const cc::easy::job::Job::Config& a_config,
+                                                                        const bool a_sequentiable)
                 : DeferrableBaseClassAlias(a_tube, a_loggable_data, a_config),
-                  abbr_(a_abbr)
+                  abbr_(a_abbr),
+                   d_({
+                        /* dispatcher_                    */ nullptr,
+                        /* on_deferred_request_completed_ */ nullptr,
+                        /* on_deferred_request_failed_    */ nullptr
+                   }),
+                   sequentiable_(a_sequentiable)
             {
                 CC_DEBUG_FAIL_IF_NOT_AT_THREAD(DeferrableBaseClassAlias::thread_id_);
-                d_.dispatcher_                    = nullptr;
-                d_.on_deferred_request_completed_ = nullptr;
-                d_.on_deferred_request_failed_    = nullptr;
             }
 
             /**
@@ -346,9 +356,13 @@ namespace casper
                 CC_DEBUG_FAIL_IF_NOT_AT_THREAD(DeferrableBaseClassAlias::thread_id_);
                 
                 //
-                // ... log response ...
+                // ... log response?
                 //
-                LogDeferredRequestResponse(abbr_.c_str(), a_deferred->tracking_, a_deferred->response());
+                // TODO: review the need for this ( @ log )
+                // ... only if it's not sequentiable ...
+                if ( true == sequentiable_ ) {
+                    LogDeferredRequestResponse(abbr_.c_str(), a_deferred->tracking_, a_deferred->response());
+                }
                 
                 //
                 // ... process response ...
@@ -427,7 +441,7 @@ namespace casper
             {
                 // ... log message ...
                 CASPER_JOB_LOG_DEFERRED(CC_JOB_LOG_LEVEL_DBG, a_deferred->tracking_, CC_JOB_LOG_STEP_STEP,
-                                        "{%s} - %s",
+                                        "{%s} - " CC_JOB_LOG_COLOR(DARK_GRAY) "%s" CC_LOGS_LOGGER_RESET_ATTRS,
                                         abbr_.c_str(), a_message.c_str()
                 );
             }
@@ -463,8 +477,7 @@ namespace casper
             {
                 if ( CC_JOB_LOG_LEVEL_DBG == a_level && 0 == strcasecmp(CC_JOB_LOG_STEP_DUMP, "dump") ) {
                     CASPER_JOB_LOG_DEFERRED(a_level, a_tracking, CC_JOB_LOG_STEP_DUMP,
-                                            "{%s} - " CC_JOB_LOG_COLOR(DARK_GRAY) "%s"
-                                            CC_LOGS_LOGGER_RESET_ATTRS,
+                                            "{%s} - " CC_JOB_LOG_COLOR(DARK_GRAY) "%s" CC_LOGS_LOGGER_RESET_ATTRS,
                                             a_tracking.dpid_.c_str(), a_message.c_str()
                     );
                 } else {
