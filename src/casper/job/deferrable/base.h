@@ -537,7 +537,7 @@ namespace casper
              * @param a_deferred Deferred request data.
              * @param a_callback Function to call:
              *                  - if returns 0 don't finalize job now ( still work to do );
-             *                  - if no 0, or if an exception is catched finalize job immediatley.
+             *                  - if 0, or if an exception is catched finalize job immediatley.
              * @param o_payload JSON response to fill.
              */
             template <class A, typename S, S doneValue>
