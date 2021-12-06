@@ -72,7 +72,7 @@ namespace casper
 
             public: // Constructor(s) / Destructor
                 
-                Dispatcher () = delete;
+                CC_IF_DEBUG(Dispatcher () = delete;)
                 Dispatcher (CC_IF_DEBUG_CONSTRUCT_DECLARE_VAR(const cc::debug::Threading::ThreadID, a_thread_id));
                 virtual ~Dispatcher ();
                 
@@ -102,7 +102,7 @@ namespace casper
              */
             template <class A>
             Dispatcher<A>::Dispatcher (CC_IF_DEBUG_CONSTRUCT_DECLARE_VAR(const cc::debug::Threading::ThreadID, a_thread_id))
-                : CC_IF_DEBUG_CONSTRUCT_SET_VAR(thread_id_, a_thread_id)
+                CC_IF_DEBUG(: CC_IF_DEBUG_CONSTRUCT_SET_VAR(thread_id_, a_thread_id))
             {
                 CC_DEBUG_FAIL_IF_NOT_AT_THREAD(thread_id_);
             }
