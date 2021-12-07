@@ -63,6 +63,8 @@ namespace casper
                     std::function<void(const Deferred<A>*, const std::string&)>                                    on_log_deferred_step_;
                     std::function<void(const Deferred<A>*, const std::string&)>                                    on_log_deferred_debug_;
                     std::function<void(const Deferred<A>*, const std::string&)>                                    on_log_deferred_error_;
+                    std::function<void(const Deferred<A>*, const std::string&)>                                    on_log_deferred_verbose_;
+                    std::function<void(const Deferred<A>*, const uint8_t, const char* const, const std::string&)>  on_log_deferred_;
                     std::function<void(const Tracking&, const int, const char* const, const std::string&)>         on_log_tracking_;
                 } Callbacks;
                 

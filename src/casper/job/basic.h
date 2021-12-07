@@ -160,8 +160,8 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
             // ... NGINX-BROKER 'jobify' module awareness ...
             if ( true == a_payload.isMember("body") && true == a_payload.isMember("headers") ) {
                 // ... check source?
-                if ( nullptr != o_broker ) {
-                    (*o_broker) = true; // TODO: validate "source" == " nginx-broker//*" ?
+                if ( nullptr != o_broker ) { // TODO: review this code
+                    (*o_broker) = ( true == a_payload.isMember("__nginx_broker__") );
                 }
                 // ... read TTR and validity ...
                 const int64_t ttr      = static_cast<int64_t>(json.Get(a_payload["body"], "ttr", Json::ValueType::uintValue, &c_ttr).asUInt64());

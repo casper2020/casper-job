@@ -98,11 +98,13 @@ namespace casper
                 void OnLooperThread                (const std::string& a_id, std::function<void(const std::string&)> a_callback);
                 void OnLooperThreadDelayed         (const std::string& a_id, std::function<void(const std::string&)> a_callback, const size_t a_delay);
 
-                void OnDeferredRequestCompleted (const deferrable::Deferred<A>* a_deferred);
-                void OnDeferredRequestFailed    (const deferrable::Deferred<A>* a_deferred, Json::Value& o_response);
-                void OnDeferredRequestLogStep   (const deferrable::Deferred<A>* a_deferred, const std::string& o_payload);
-                void OnDeferredRequestLogDebug  (const deferrable::Deferred<A>* a_deferred, const std::string& o_payload);
-                void OnDeferredRequestLogError  (const deferrable::Deferred<A>* a_deferred, const std::string& o_payload);
+                void OnDeferredRequestCompleted  (const deferrable::Deferred<A>* a_deferred);
+                void OnDeferredRequestFailed     (const deferrable::Deferred<A>* a_deferred, Json::Value& o_response);
+                void OnDeferredRequestLogStep    (const deferrable::Deferred<A>* a_deferred, const std::string& o_payload);
+                void OnDeferredRequestLogDebug   (const deferrable::Deferred<A>* a_deferred, const std::string& o_payload);
+                void OnDeferredRequestLogError   (const deferrable::Deferred<A>* a_deferred, const std::string& o_payload);
+                void OnDeferredRequestLogVerbose (const deferrable::Deferred<A>* a_deferred, const std::string& o_payload);
+                void OnDeferredRequestLog        (const deferrable::Deferred<A>*,const uint8_t, const char* const, const std::string&);
                 
                 void OnDeferredRequestLogTracking  (const Tracking& a_tracking, const int a_level, const char* const a_step, const std::string& a_message);
                 
@@ -195,6 +197,8 @@ namespace casper
                     /* on_log_deferred_step_      */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLogStep, this, std::placeholders::_1, std::placeholders::_2),
                     /* on_log_deferred_debug_     */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLogDebug, this, std::placeholders::_1, std::placeholders::_2),
                     /* on_log_deferred_error_     */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLogError, this, std::placeholders::_1, std::placeholders::_2),
+                    /* on_log_deferred_verbose_   */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLogVerbose, this, std::placeholders::_1, std::placeholders::_2),
+                    /* on_log_deferred_           */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLog, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
                     /* on_log_tracking_           */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLogTracking, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4)
                 });
             }
@@ -461,6 +465,48 @@ namespace casper
                                         abbr_.c_str(), a_message.c_str()
                 );
             }
+            
+            /**
+             * @brief Called by a 'deferred' request when there's a messages that needs to be logged.
+             *
+             * @param a_deferred Deferred request data.
+             * @param a_message  Message to log
+             */
+            template <class A, typename S, S doneValue>
+            void casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLogVerbose (const deferrable::Deferred<A>* a_deferred, const std::string& a_message)
+            {
+                // ... log message ...
+                CASPER_JOB_LOG_DEFERRED(CC_JOB_LOG_LEVEL_VBS, a_deferred->tracking_, CC_JOB_LOG_STEP_HTTP,
+                                        "{%s} - " CC_JOB_LOG_COLOR(DARK_GRAY) "%s" CC_LOGS_LOGGER_RESET_ATTRS,
+                                        abbr_.c_str(), a_message.c_str()
+                );
+            }
+        
+            /**
+             * @brief Called by a 'deferred' request when there's a messages that needs to be logged.
+             *
+             * @param a_deferred Deferred request data.
+             * @param a_message  Message to log
+             */
+            template <class A, typename S, S doneValue>
+            void casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLog (const deferrable::Deferred<A>* a_deferred, const uint8_t a_level, const char* const a_step, const std::string& a_message)
+            {
+                if ( 0 == strcasecmp(a_step, CC_JOB_LOG_STEP_DUMP) || 0 == strcasecmp(a_step, CC_JOB_LOG_STEP_HTTP) ) {
+                    CASPER_JOB_LOG_DEFERRED(a_level, a_deferred->tracking_, a_step,
+                                            "{%s} - " CC_JOB_LOG_COLOR(DARK_GRAY) "%s" CC_LOGS_LOGGER_RESET_ATTRS,
+                                            abbr_.c_str(), a_message.c_str()
+                    );
+                } else if ( 0 == strcasecmp(a_step, CC_JOB_LOG_STEP_ERROR) ) {
+                    CASPER_JOB_LOG_DEFERRED(a_level, a_deferred->tracking_, a_step,
+                                            "{%s} - " CC_JOB_LOG_COLOR(RED) "%s" CC_LOGS_LOGGER_RESET_ATTRS,
+                                            abbr_.c_str(), a_message.c_str()
+                    );
+                } else {
+                    CASPER_JOB_LOG_DEFERRED(a_level, a_deferred->tracking_, a_step,
+                                            "{%s} - %s", abbr_.c_str(), a_message.c_str()
+                    );
+                }
+            }
 
             // MARK: -
 
@@ -475,7 +521,7 @@ namespace casper
             template <class A, typename S, S doneValue>
             void casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLogTracking (const Tracking& a_tracking, const int a_level, const char* const a_step, const std::string& a_message)
             {
-                if ( CC_JOB_LOG_LEVEL_DBG == a_level && 0 == strcasecmp(CC_JOB_LOG_STEP_DUMP, "dump") ) {
+                if ( CC_JOB_LOG_LEVEL_DBG == a_level && 0 == strcasecmp(a_step, CC_JOB_LOG_STEP_DUMP) ) {
                     CASPER_JOB_LOG_DEFERRED(a_level, a_tracking, CC_JOB_LOG_STEP_DUMP,
                                             "{%s} - " CC_JOB_LOG_COLOR(DARK_GRAY) "%s" CC_LOGS_LOGGER_RESET_ATTRS,
                                             a_tracking.dpid_.c_str(), a_message.c_str()
