@@ -86,7 +86,7 @@ namespace casper
                     json_         = a_response.json_;
                     content_type_ = a_response.content_type_;
                     rtt_          = a_response.rtt_;
-                    exception_    = a_response.exception_;
+                    exception_    = ( nullptr != a_response.exception_ ? new ::cc::Exception(*a_response.exception_) : nullptr );;
                 }
                         
                 /**
