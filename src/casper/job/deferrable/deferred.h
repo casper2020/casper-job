@@ -60,6 +60,7 @@ namespace casper
                     std::function<void(std::function<void()>, const size_t)>                                       on_main_thread_deferred_;
                     std::function<void(const std::string&, std::function<void(const std::string&)>)>               on_looper_thread_;
                     std::function<void(const std::string&, std::function<void(const std::string&)>, const size_t)> on_looper_thread_deferred_;
+                    std::function<void(const std::string&)>                                                        try_cancel_on_looper_thread_;
                     std::function<void(const Deferred<A>*, const std::string&)>                                    on_log_deferred_step_;
                     std::function<void(const Deferred<A>*, const std::string&)>                                    on_log_deferred_debug_;
                     std::function<void(const Deferred<A>*, const std::string&)>                                    on_log_deferred_error_;
@@ -87,10 +88,20 @@ namespace casper
 
                 A*             arguments_;
                 Response       response_;
+                
+            private: // TODO:
+                
+                typedef struct {
+                    std::mutex            mutex_;
+                    std::set<std::string> callbacks_;
+                } Pending;
+                
+                Pending   pending_;
+                
+                Callbacks callbacks_;
 
             protected: // Function Ptrs
-                
-                Callbacks        callbacks_;
+
                 LifeCycleHandler handler_;
 
             public: // Constructor(s) / Destructor
@@ -111,6 +122,10 @@ namespace casper
                 void Track     ();
                 void Untrack   ();
                 bool Tracked   ();
+
+            protected: // Inline Method(s) / Function(s(
+                
+                inline void Bind (Callbacks a_callbacks);
 
             public: // Inline Method(s) / Function(s)
 
@@ -138,8 +153,29 @@ namespace casper
                     return response_;
                 }
                 
+            protected: // API - Method(s) / Function(s)
+                
+                void OnProgress                 (const Deferred<A>* a_deferred);
+                void OnChanged                  (const Deferred<A>* a_deferred);
+                void OnCompleted                (const Deferred<A>* a_deferred);
+                
+                void CallOnMainThread           (std::function<void()> a_function);
+                void CallOnMainThreadDeferred   (std::function<void()> a_function, const size_t a_delay);
+
+                void CallOnLooperThread         (const std::string& a_id, std::function<void(const std::string&)> a_function, const bool a_daredevil = false);
+                void CallOnLooperThreadDeferred (const std::string& a_id, std::function<void(const std::string&)> a_function, const size_t a_delay, const bool a_daredevil = false);
+                void TryCancelOnLooperThread    (const std::string& a_id);
+
+                void OnLogDeferredStep          (const Deferred<A>* a_deferred, const std::string& a_message);
+                void OnLogDeferredDebug         (const Deferred<A>* a_deferred, const std::string& a_message);
+                void OnLogDeferredError         (const Deferred<A>* a_deferred, const std::string& a_message);
+                void OnLogDeferredVerbose       (const Deferred<A>* a_deferred, const std::string& a_message);
+                
+                void OnLogDeferred              (const Deferred<A>* a_deferred, const uint8_t a_level, const char* const a_step, const std::string& a_message);
+                void OnLogTracking              (const Tracking& a_tracking   , const int a_level, const char* const a_step, const std::string& a_message);                
+                
             }; // end of class 'Deferred'
-        
+
             /**
              * @brief Default constructor.
              *
@@ -154,7 +190,6 @@ namespace casper
             {
                 CC_DEBUG_FAIL_IF_NOT_AT_THREAD(thread_id_);
                 arguments_                   = nullptr;
-
                 handler_.on_track_           = nullptr;
                 handler_.on_untrack_         = nullptr;
             }
@@ -166,11 +201,15 @@ namespace casper
             Deferred<A>::~Deferred ()
             {
                 CC_DEBUG_FAIL_IF_NOT_AT_THREAD(thread_id_);
+                std::lock_guard<std::mutex> lock_out(pending_.mutex_);
+                for ( const auto& it : pending_.callbacks_ ) {
+                    callbacks_.try_cancel_on_looper_thread_(it);
+                }
                 if ( nullptr != arguments_ ) {
                     delete arguments_;
                 }
             }
-                        
+
             /**
              * @brief Set the lifecycle handler.
              *
@@ -182,7 +221,20 @@ namespace casper
                 CC_DEBUG_FAIL_IF_NOT_AT_THREAD(thread_id_);
                 handler_ = a_handler;
             }
-        
+
+            /**
+             * @brief Set the callbacks.
+             *
+             * @param a_callbacks See \link Callbacks \link.
+             */
+            template <class A>
+            inline void Deferred<A>::Bind (Deferred<A>::Callbacks a_callbacks)
+            {
+                CC_DEBUG_FAIL_IF_NOT_AT_THREAD(thread_id_);
+                CC_DEBUG_ASSERT(nullptr == callbacks_.on_main_thread_);
+                callbacks_ = a_callbacks;
+            }
+
             /**
              * @brief Request to be tracked;
              */
@@ -192,7 +244,7 @@ namespace casper
                 CC_DEBUG_FAIL_IF_NOT_AT_THREAD(thread_id_);
                 handler_.on_track_(this);
             }
-        
+
             /**
              * @brief Request to be untracked ( and disposed );
              */
@@ -202,7 +254,7 @@ namespace casper
                 CC_DEBUG_FAIL_IF_NOT_AT_THREAD(thread_id_);
                 handler_.on_untrack_(this);
             }
-        
+
             /**
              * @return True if is being tracked, false otherwise.
              */
@@ -212,7 +264,242 @@ namespace casper
                 CC_DEBUG_FAIL_IF_NOT_AT_THREAD(thread_id_);
                 return ( nullptr != handler_.is_tracked_ ? handler_.is_tracked_(this) : false );
             }
-                                                    
+
+            // MARK: control
+
+            /**
+             * @brief Call this method to report progress for a deferred request.
+             *
+             * @param a_deferred Deferred request data.
+             */
+            template <class A>
+            inline void Deferred<A>::OnProgress (const Deferred<A>* a_deferred)
+            {
+                callbacks_.on_progress_(a_deferred);
+            }
+
+            /**
+             * @brief Call this method to report that a deferred request state changed.
+             *
+             * @param a_deferred Deferred request data.
+             */
+            template <class A>
+            inline void Deferred<A>::OnChanged (const Deferred<A>* a_deferred)
+            {
+                callbacks_.on_changed_(a_deferred);
+            }
+
+            /**
+             * @brief Call this method to report that a deferred request is now completed.
+             *
+             * @param a_deferred Deferred request data.
+             */
+            template <class A>
+            inline void Deferred<A>::OnCompleted (const Deferred<A>* a_deferred)
+            {
+                callbacks_.on_completed_(a_deferred);
+            }
+
+            // MARK: main
+
+            /**
+             * @brief Schedule a callback on 'main' thread.
+             *
+             * @param a_function Function to call.
+             */
+            template <class A>
+            inline void Deferred<A>::CallOnMainThread (std::function<void()> a_function)
+            {
+                callbacks_.on_main_thread_(a_function);
+            }
+
+            /**
+             * @brief Schedule a callback on 'main' thread.
+             *
+             * @param a_function Function to call.
+             * @param a_delay    Amount of time ( in ms ) to delay call, 0 none.
+             */
+            template <class A>
+            inline void Deferred<A>::CallOnMainThreadDeferred (std::function<void()> a_function, const size_t a_delay)
+            {
+                callbacks_.on_main_thread_deferred_(a_function, a_delay);
+            }                
+
+            // MARK: looper
+
+            /**
+             * @brief Schedule a callback on 'looper' thread.
+             *
+             * @param a_id       Callback ID.
+             * @param a_function Function to call.
+             * @param a_daredevil When true, won't attempt cleanup.
+             */
+            template <class A>
+            inline void Deferred<A>::CallOnLooperThread (const std::string& a_id, std::function<void(const std::string&)> a_function, const bool a_daredevil)
+            {
+                CallOnLooperThreadDeferred(a_id, a_function, /* a_delay */ 0, a_daredevil);
+            }
+
+            /**
+             * @brief Schedule a callback on 'looper' thread.
+             *
+             * @param a_id       Callback ID.
+             * @param a_function Function to call.
+             * @param a_delay    Amount of time ( in ms ) to delay call, 0 none.
+             * @param a_daredevil When true, won't attempt cleanup.
+             */
+            template <class A>
+            inline void Deferred<A>::CallOnLooperThreadDeferred (const std::string& a_id, std::function<void(const std::string&)> a_function, const size_t a_delay, const bool a_daredevil)
+            {
+                // ... (in)sanity checkpoint ...
+                CC_DEBUG_FAIL_IF_NOT_AT_MAIN_THREAD();
+                // ... track callback id ...
+                bool duplicated = false;
+                //..  ⚠️ do not use std::lock_guard here ⚠️ ...
+                pending_.mutex_.lock();
+                if ( pending_.callbacks_.end() != pending_.callbacks_.find(a_id) ) {
+                    duplicated = true;
+                } else {
+                    pending_.callbacks_.insert(a_id);
+                }
+                pending_.mutex_.unlock();
+                // ... for debug catch ...
+                CC_DEBUG_ASSERT(false == duplicated);
+                // ... but if in release, do not crash this process just cancel this job deferred action ...
+                if ( true == duplicated ) {
+                    throw ::cc::InternalServerError("Found duplicated id call looper id %s!", a_id.c_str());
+                }
+                // ... schedule callback ...
+                if ( 0 != a_delay ) {
+                    callbacks_.on_looper_thread_deferred_(a_id, [this, a_function, a_daredevil](const std::string& a_id) {
+                        // ... untrack callback id ...
+                        if ( false == a_daredevil ) {
+                            //..  ⚠️ do not use std::lock_guard here ⚠️ ...
+                            pending_.mutex_.lock();
+                            const auto it = pending_.callbacks_.find(a_id);
+                            if ( pending_.callbacks_.end() != it ) {
+                                pending_.callbacks_.erase(it);
+                            }
+                            pending_.mutex_.unlock();
+                        }
+                        // ... perform ...
+                        a_function(a_id);
+                    }, a_delay);
+                } else {
+                    callbacks_.on_looper_thread_(a_id, [this, a_function, a_daredevil](const std::string& a_id) {
+                        // ... untrack callback id ...
+                        if ( false == a_daredevil ) {
+                            //..  ⚠️ do not use std::lock_guard here ⚠️ ...
+                            pending_.mutex_.lock();
+                            const auto it = pending_.callbacks_.find(a_id);
+                            if ( pending_.callbacks_.end() != it ) {
+                                pending_.callbacks_.erase(it);
+                            }
+                            pending_.mutex_.unlock();
+                        }
+                        // ... perform ...
+                        a_function(a_id);
+                    });
+                }
+            }
+
+            /**
+             * @brief Try to cancel a previously schedule callback on 'looper' thread.
+             *
+             * @param a_id Callback ID.
+             */
+            template <class A>
+            inline void Deferred<A>::TryCancelOnLooperThread (const std::string& a_id)
+            {
+                CC_DEBUG_FAIL_IF_NOT_AT_THREAD(thread_id_);
+                std::lock_guard<std::mutex> lock(pending_.mutex_);
+                // ... untrack of callback id ...
+                const auto it = pending_.callbacks_.find(a_id);
+                if ( pending_.callbacks_.end() != it ) {
+                    pending_.callbacks_.erase(it);
+                }
+                // ... try ...
+                callbacks_.try_cancel_on_looper_thread_(a_id);
+            }
+        
+            // MARK: logging
+        
+            /**
+             * @brief Call this method to log a deferred request step message.
+             *
+             * @param a_deferred Deferred request data.
+             * @param a_message  Message to log.
+             */
+            template <class A>
+            inline void Deferred<A>::OnLogDeferredStep (const Deferred<A>* a_deferred, const std::string& a_message)
+            {
+                callbacks_.on_log_deferred_step_(a_deferred, a_message);
+            }
+            
+            /**
+             * @brief Call this method to log a deferred request debug message.
+             *
+             * @param a_deferred Deferred request data.
+             * @param a_message  Message to log.
+             */
+            template <class A>
+            inline void Deferred<A>::OnLogDeferredDebug (const Deferred<A>* a_deferred, const std::string& a_message)
+            {
+                callbacks_.on_log_deferred_debug_(a_deferred, a_message);
+            }
+            
+            /**
+             * @brief Call this method to log a deferred request error message.
+             *
+             * @param a_deferred Deferred request data.
+             * @param a_message  Message to log.
+             */
+            template <class A>
+            inline void Deferred<A>::OnLogDeferredError (const Deferred<A>* a_deferred, const std::string& a_message)
+            {
+                callbacks_.on_log_deferred_error_(a_deferred, a_message);
+            }
+            
+            /**
+             * @brief Call this method to log a deferred request verbose message.
+             *
+             * @param a_deferred Deferred request data.
+             * @param a_message  Message to log.
+             */
+            template <class A>
+            inline void Deferred<A>::OnLogDeferredVerbose (const Deferred<A>* a_deferred, const std::string& a_message)
+            {
+                callbacks_.on_log_deferred_verbose_(a_deferred, a_message);
+            }
+            
+            /**
+             * @brief Call this method to log a deferred request message.
+             *
+             * @param a_deferred Deferred request data.
+             * @param a_level    Log level.
+             * @param a_step     Log step.
+             * @param a_message  Message to log.
+             */
+            template <class A>
+            inline void Deferred<A>::OnLogDeferred (const Deferred<A>* a_deferred, const uint8_t a_level, const char* const a_step, const std::string& a_message)
+            {
+                callbacks_.on_log_deferred_(a_deferred, a_level, a_step, a_message);
+            }
+            
+            /**
+             * @brief Call this method to log a deferred request tracking message..
+             *
+             * @param a_tracking Request tracking info.
+             * @param a_level    Log level.
+             * @param a_step     Log step.
+             * @param a_message  Message to log.
+             */
+            template <class A>
+            inline void Deferred<A>::OnLogTracking (const Tracking& a_tracking, const int a_level, const char* const a_step, const std::string& a_message)
+            {
+                callbacks_.on_log_tracking_(a_tracking, a_level, a_step, a_message);
+            }
+        
         } // end of namespace 'deferrable'
     
     } // end of namespace 'job'

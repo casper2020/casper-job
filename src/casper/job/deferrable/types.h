@@ -42,11 +42,12 @@ namespace casper
         {
                     
             typedef struct  {
-                const int64_t     bjid_; //!< BEANSTALKD job id.
-                const std::string rjnr_; //!< REDIS job number.
-                const std::string rjid_; //!< REDIS job key.
-                const std::string rcid_; //!< REDIS channel id.
-                const std::string dpid_; //!< Dispatcher ID.
+                const int64_t     bjid_; //!< BEANSTALKD job ID
+                const std::string rjnr_; //!< REDIS job number
+                const std::string rjid_; //!< REDIS job key
+                const std::string rcid_; //!< REDIS channel ID
+                const std::string dpid_; //!< Dispatcher ID
+                const std::string ua_;   //!< HTTP User-Agent header value
             } Tracking;
                     
             class Response final : ::cc::NonMovable {

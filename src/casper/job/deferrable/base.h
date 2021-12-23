@@ -97,6 +97,7 @@ namespace casper
                 void OnMainThreadDelayed           (std::function<void()> a_callback, const size_t a_delay);
                 void OnLooperThread                (const std::string& a_id, std::function<void(const std::string&)> a_callback);
                 void OnLooperThreadDelayed         (const std::string& a_id, std::function<void(const std::string&)> a_callback, const size_t a_delay);
+                void TryCancelOnLooperThread       (const std::string& a_id);
 
                 void OnDeferredRequestCompleted  (const deferrable::Deferred<A>* a_deferred);
                 void OnDeferredRequestFailed     (const deferrable::Deferred<A>* a_deferred, Json::Value& o_response);
@@ -187,19 +188,20 @@ namespace casper
                 //
                 d_.dispatcher_->Setup(DeferrableBaseClassAlias::config_.other());
                 d_.dispatcher_->Bind({
-                    /* on_changed_                */ nullptr,
-                    /* on_progress_               */ nullptr,
-                    /* on_completed_              */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestCompleted, this, std::placeholders::_1),
-                    /* on_main_thread_            */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnMainThread, this, std::placeholders::_1),
-                    /* on_main_thread_deferred_   */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnMainThreadDelayed, this, std::placeholders::_1, std::placeholders::_2),
-                    /* on_looper_thread_          */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnLooperThread, this, std::placeholders::_1, std::placeholders::_2),
-                    /* on_looper_thread_deferred_ */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnLooperThreadDelayed, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
-                    /* on_log_deferred_step_      */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLogStep, this, std::placeholders::_1, std::placeholders::_2),
-                    /* on_log_deferred_debug_     */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLogDebug, this, std::placeholders::_1, std::placeholders::_2),
-                    /* on_log_deferred_error_     */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLogError, this, std::placeholders::_1, std::placeholders::_2),
-                    /* on_log_deferred_verbose_   */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLogVerbose, this, std::placeholders::_1, std::placeholders::_2),
-                    /* on_log_deferred_           */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLog, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
-                    /* on_log_tracking_           */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLogTracking, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4)
+                    /* on_changed_                  */ nullptr,
+                    /* on_progress_                 */ nullptr,
+                    /* on_completed_                */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestCompleted, this, std::placeholders::_1),
+                    /* on_main_thread_              */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnMainThread, this, std::placeholders::_1),
+                    /* on_main_thread_deferred_     */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnMainThreadDelayed, this, std::placeholders::_1, std::placeholders::_2),
+                    /* on_looper_thread_            */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnLooperThread, this, std::placeholders::_1, std::placeholders::_2),
+                    /* on_looper_thread_deferred_   */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnLooperThreadDelayed, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3),
+                    /* try_cancel_on_looper_thread_ */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::TryCancelOnLooperThread, this, std::placeholders::_1),
+                    /* on_log_deferred_step_        */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLogStep, this, std::placeholders::_1, std::placeholders::_2),
+                    /* on_log_deferred_debug_       */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLogDebug, this, std::placeholders::_1, std::placeholders::_2),
+                    /* on_log_deferred_error_       */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLogError, this, std::placeholders::_1, std::placeholders::_2),
+                    /* on_log_deferred_verbose_     */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLogVerbose, this, std::placeholders::_1, std::placeholders::_2),
+                    /* on_log_deferred_             */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLog, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4),
+                    /* on_log_tracking_             */ std::bind(&casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLogTracking, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4)
                 });
             }
         
@@ -345,6 +347,18 @@ namespace casper
             {
                 CC_DEBUG_FAIL_IF_NOT_AT_MAIN_THREAD(); // MANDATORY CHECK
                 DeferrableBaseClassAlias::ScheduleCallbackOnLooperThread(a_id, a_callback, a_delay);
+            }
+        
+            /**
+             * @brief Try to cancel a previously scheduled callback on 'looper' thread.
+             *
+             * @param a_id UNIQUE ID.
+             */
+            template <class A, typename S, S doneValue>
+            void casper::job::deferrable::Base<A, S, doneValue>::TryCancelOnLooperThread (const std::string& a_id)
+            {
+                // can be called from any thread
+                DeferrableBaseClassAlias::TryCancelCallbackOnLooperThread(a_id);
             }
 
             // MARK: -
