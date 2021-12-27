@@ -135,7 +135,7 @@ namespace casper
                 {
                     code_         = a_code;
                     headers_.clear();
-                    body_         = a_body; // keeping body as string for log proposes
+                    body_         = a_body;
                     content_type_ = a_content_type;
                     if ( nullptr != exception_ ) {
                         delete exception_;

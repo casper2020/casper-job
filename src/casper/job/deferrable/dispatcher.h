@@ -98,7 +98,7 @@ namespace casper
             /**
              * @brief Default constructor.
              *
-             * param a_thread_id For debug proposes only
+             * param a_thread_id For debug purposes only
              */
             template <class A>
             Dispatcher<A>::Dispatcher (CC_IF_DEBUG_CONSTRUCT_DECLARE_VAR(const cc::debug::Threading::ThreadID, a_thread_id))
