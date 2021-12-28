@@ -44,12 +44,12 @@ namespace casper
         class Basic : public cc::easy::job::Job
         {
             
-        protected: // Static Const Data
+        private: // Static Const Data
             
             static const ::cc::easy::job::I18N sk_i18n_in_progress_ ;
             static const ::cc::easy::job::I18N sk_i18n_completed_;
             static const ::cc::easy::job::I18N sk_i18n_error_;
-
+            
         protected: // Const Data
             
             CC_IF_DEBUG_DECLARE_VAR(const cc::debug::Threading::ThreadID, thread_id_);
@@ -63,6 +63,12 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
                CC_JOB_LOG_COLOR(MAGENTA) "%-8.8s" CC_LOGS_LOGGER_RESET_ATTRS ": %-7.7s, " a_format, \
               "JOB", a_step, __VA_ARGS__ \
 );
+
+        private: // Data
+            
+            ::cc::easy::job::I18N* i18n_in_progress_;
+            ::cc::easy::job::I18N* i18n_completed_;
+            ::cc::easy::job::I18N* i18n_error_;
 
         public: // Constructor(s) / Destructor
             
@@ -93,6 +99,13 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
                           const char* const a_i18n_key,
                           const std::map<std::string, Json::Value>& a_arguments);
             
+        protected: // Method(s) / Function(s)
+            
+            void                         OverrideI18N   (const Json::Value& a_value);
+            const ::cc::easy::job::I18N& I18NInProgress () const;
+            const ::cc::easy::job::I18N& I18NCompleted  () const;
+            const ::cc::easy::job::I18N& I18NError      () const;
+            
         }; // end of class 'Basic'
     
         template <typename S>
@@ -113,7 +126,8 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
         casper::job::Basic<S>::Basic (const std::string& a_tube,
                                           const ev::Loggable::Data& a_loggable_data, const cc::easy::job::Job::Config& a_config)
             : cc::easy::job::Job(a_loggable_data, a_tube, a_config)
-             CC_IF_DEBUG_CONSTRUCT_APPEND_SET_VAR(thread_id_, cc::debug::Threading::GetInstance().CurrentThreadID(),)
+             CC_IF_DEBUG_CONSTRUCT_APPEND_SET_VAR(thread_id_, cc::debug::Threading::GetInstance().CurrentThreadID(),),
+             i18n_in_progress_(nullptr), i18n_completed_(nullptr), i18n_error_(nullptr)
         {
             /* empty */
         }
@@ -124,7 +138,15 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
         template <typename S>
         casper::job::Basic<S>::~Basic ()
         {
-            /* empty */
+            if ( nullptr != i18n_in_progress_ ) {
+                delete i18n_in_progress_;
+            }
+            if ( nullptr != i18n_completed_ ) {
+                delete i18n_completed_;
+            }
+            if ( nullptr != i18n_error_ ) {
+                delete i18n_error_;
+            }
         }
 
         /**
@@ -278,6 +300,62 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
                                "Failed"
                 );
             }
+        }
+    
+        /**
+         * @brief Override i18n messages.
+         *
+         * @param a_value i18n messages, JSON representation.
+         */
+        template <typename S>
+        void casper::job::Basic<S>::OverrideI18N (const Json::Value& a_value)
+        {
+            const std::map<const char* const, ::cc::easy::job::I18N**> supported = {
+                { "progress" , &i18n_in_progress_ },
+                { "completed", &i18n_completed_   },
+                { "error"    , &i18n_error_       }
+            };
+            const ::cc::easy::JSON<::cc::Exception> json;
+            for ( const auto& entry : supported ) {
+                const Json::Value& value = json.Get(a_value, entry.first, Json::ValueType::stringValue, &Json::Value::null);
+                if ( true == value.isNull() ) {
+                    continue;
+                }
+                if ( nullptr != *entry.second ) {
+                    delete *entry.second;
+                }
+                (*entry.second) = new ::cc::easy::job::I18N({
+                    /* key_       */ value.asString(),
+                    /* arguments_ */ {}
+                });
+            }
+        }
+
+        /**
+         * @return i18 'progress' message key and it's args.
+         */
+        template <typename S>
+        const ::cc::easy::job::I18N& casper::job::Basic<S>::I18NInProgress () const
+        {
+            return ( nullptr !=  i18n_in_progress_ ? *i18n_in_progress_ : sk_i18n_in_progress_);
+        }
+
+        /**
+         * @return i18 'completed' message key and it's args.
+         */
+        template <typename S>
+        const ::cc::easy::job::I18N& casper::job::Basic<S>::I18NCompleted () const
+        {
+            return ( nullptr !=  i18n_completed_ ? *i18n_completed_ : sk_i18n_completed_);
+        }
+
+        /**
+         * @return i18 'error' message key and it's args.
+         */
+        template <typename S>
+        const ::cc::easy::job::I18N& casper::job::Basic<S>::I18NError () const
+        {
+            return ( nullptr !=  i18n_error_ ? *i18n_error_ : sk_i18n_error_);
         }
     
     } // end of namespace 'fs'

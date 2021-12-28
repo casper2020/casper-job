@@ -122,7 +122,7 @@ namespace casper
 
             } catch (const ::cc::BadRequest& a_br_exception) {
                 // ... parsing error ...
-                o_response.code_ = ::casper::job::Basic<S>::SetBadRequest(/* a_i18n */ &::casper::job::Base<S, doneValue>::sk_i18n_error_,
+                o_response.code_ = ::casper::job::Basic<S>::SetBadRequest(/* a_i18n */ &::casper::job::Base<S, doneValue>::I18NError(),
                                                                              /* a_error */ {
                                                                                 /* code_ */ nullptr,
                                                                                 /* why_  */ std::string(a_br_exception.what())
@@ -131,7 +131,7 @@ namespace casper
                 );
             } catch (const ::cc::NotImplemented& a_ni_exception) {
                 // ... ISE ...
-                o_response.code_ = ::casper::job::Basic<S>::SetNotImplemented(/* a_i18n */ &::casper::job::Base<S, doneValue>::sk_i18n_error_,
+                o_response.code_ = ::casper::job::Basic<S>::SetNotImplemented(/* a_i18n */ &::casper::job::Base<S, doneValue>::I18NError(),
                                                                               /* a_error */ {
                                                                                   /* code_ */ nullptr,
                                                                                   /* why_  */ std::string(a_ni_exception.what())
@@ -140,7 +140,7 @@ namespace casper
                 );
             } catch (const ::cc::InternalServerError& a_ise_exception) {
                 // ... ISE ...
-                o_response.code_ = ::casper::job::Basic<S>::SetInternalServerError(/* a_i18n */ &::casper::job::Base<S, doneValue>::sk_i18n_error_,
+                o_response.code_ = ::casper::job::Basic<S>::SetInternalServerError(/* a_i18n */ &::casper::job::Base<S, doneValue>::I18NError(),
                                                                                    /* a_error */ {
                                                                                      /* code_ */ nullptr,
                                                                                      /* why_  */ std::string(a_ise_exception.what())
@@ -150,7 +150,7 @@ namespace casper
             } catch (const ::cc::CodedException& a_ce_exception) {
                 // ... ISE ...
                 o_response.code_ = ::casper::job::Basic<S>::SetError(a_ce_exception.code_,
-                                                                    /* a_i18n */ &::casper::job::Base<S, doneValue>::sk_i18n_error_,
+                                                                    /* a_i18n */ &::casper::job::Base<S, doneValue>::I18NError(),
                                                                     /* a_error */ {
                                                                         /* code_ */ nullptr,
                                                                         /* why_  */ std::string(a_ce_exception.what())
@@ -159,7 +159,7 @@ namespace casper
                 );
             } catch (const ::cc::Exception& a_cc_exception) {
                 // ... parsing error ...
-                o_response.code_ = ::casper::job::Basic<S>::SetInternalServerError(/* a_i18n */ &::casper::job::Base<S, doneValue>::sk_i18n_error_,
+                o_response.code_ = ::casper::job::Basic<S>::SetInternalServerError(/* a_i18n */ &::casper::job::Base<S, doneValue>::I18NError(),
                                                                                           /* a_error */ {
                                                                                                 /* code_ */ nullptr,
                                                                                                 /* why_  */ ( "An error occurred while preparing job: " + std::string(a_cc_exception.what()))
@@ -171,7 +171,7 @@ namespace casper
                     ::cc::Exception::Rethrow(/* a_unhandled */ true, __FILE__, __LINE__, __FUNCTION__);
                 } catch (::cc::Exception& a_cc_exception) {
                     // ... parsing error ...
-                    o_response.code_ = ::casper::job::Basic<S>::SetInternalServerError(/* a_i18n */ &::casper::job::Base<S, doneValue>::sk_i18n_error_,
+                    o_response.code_ = ::casper::job::Basic<S>::SetInternalServerError(/* a_i18n */ &::casper::job::Base<S, doneValue>::I18NError(),
                                                                                               /* a_error */ {
                                                                                                     /* code_ */ nullptr,
                                                                                                     /* why_  */ ( "An error occurred while preparing job: " + std::string(a_cc_exception.what()))

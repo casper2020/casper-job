@@ -72,7 +72,7 @@ namespace casper
             private: // Data
                 
                 const bool sequentiable_;
-                
+
             public: // Constructor(s) / Destructor
                 
                 Base () = delete;
@@ -113,13 +113,11 @@ namespace casper
 
                 void Publish (const uint64_t& a_id, const std::string& a_rcid, const std::string& a_rjid,
                               const S& a_step, const cc::easy::job::Job::Status& a_status,
-                              const char* const a_i18n_key,
-                              const std::map<std::string, Json::Value>& a_arguments);
+                              const ::cc::easy::job::I18N a_i18n);
                 
                 void Publish (const uint64_t& a_id, const std::string& a_rcid, const std::string& a_rjid,
                               const float& a_percentage, const cc::easy::job::Job::Status& a_status,
-                              const char* const a_i18n_key,
-                              const std::map<std::string, Json::Value>& a_arguments);
+                              const ::cc::easy::job::I18N a_i18n);
 
                 void HandleDeferredRequestCompletion (const deferrable::Deferred<A>* a_deferred, std::function<uint16_t(Json::Value&)> a_callback, const Tracking& a_tracking);
 
@@ -129,7 +127,6 @@ namespace casper
                 void LogDeferredRequestMessage  (const std::string& a_dpid, const int a_level, const deferrable::Tracking& a_tracking, const std::string& a_message);
                 void LogDeferredRequestResponse (const std::string& a_dpid, const deferrable::Tracking& a_tracking, const deferrable::Response& a_response);
                 
-        
             }; // end of class 'Job'
 
             /**
@@ -238,7 +235,7 @@ namespace casper
                     
                 } catch (const deferrable::BadRequestException& a_br_exception) {
                     // ... parsing error ...
-                    o_response.code_ = DeferrableBaseClassAlias::SetBadRequest(/* a_i18n */ &DeferrableBaseClassAlias::sk_i18n_error_,
+                    o_response.code_ = DeferrableBaseClassAlias::SetBadRequest(/* a_i18n */ &DeferrableBaseClassAlias::I18NError(),
                                                                                /* a_error */ {
                                                                                     /* code_ */ nullptr,
                                                                                     /* why_  */ std::string(a_br_exception.what())
@@ -247,7 +244,7 @@ namespace casper
                     );
                 } catch (const ::cc::Exception& a_cc_exception) {
                     // ... parsing error ...
-                    o_response.code_ = DeferrableBaseClassAlias::SetInternalServerError(/* a_i18n */ &DeferrableBaseClassAlias::sk_i18n_error_,
+                    o_response.code_ = DeferrableBaseClassAlias::SetInternalServerError(/* a_i18n */ &DeferrableBaseClassAlias::I18NError(),
                                                                                             /* a_error */ {
                                                                                                 /* code_ */ nullptr,
                                                                                                 /* why_  */ ( "An error occurred while preparing dispatcher: " + std::string(a_cc_exception.what()))
@@ -259,7 +256,7 @@ namespace casper
                         ::cc::Exception::Rethrow(/* a_unhandled */ true, __FILE__, __LINE__, __FUNCTION__);
                     } catch (::cc::Exception& a_cc_exception) {
                         // ... parsing error ...
-                        o_response.code_ = DeferrableBaseClassAlias::SetInternalServerError(/* a_i18n */ &DeferrableBaseClassAlias::sk_i18n_error_,
+                        o_response.code_ = DeferrableBaseClassAlias::SetInternalServerError(/* a_i18n */ &DeferrableBaseClassAlias::I18NError(),
                                                                                                 /* a_error */ {
                                                                                                     /* code_ */ nullptr,
                                                                                                     /* why_  */ ( "An error occurred while preparing dispatcher: " + std::string(a_cc_exception.what()))
@@ -555,14 +552,14 @@ namespace casper
             template <class A, typename S, S doneValue>
             void casper::job::deferrable::Base<A, S, doneValue>::Publish (const uint64_t& a_id, const std::string& a_rcid, const std::string& a_rjid,
                                                                           const S& a_step, const cc::easy::job::Job::Status& a_status,
-                                                                          const char* const a_i18n_key, const std::map<std::string, Json::Value>& a_arguments)
+                                                                          const ::cc::easy::job::I18N a_i18n)
             {
                 CC_DEBUG_FAIL_IF_NOT_AT_THREAD(DeferrableBaseClassAlias::thread_id_);
                 ev::loop::beanstalkd::Job::Publish(
                 a_id, a_rcid, a_rjid,
                 {
-                    /* key_    */ a_i18n_key,
-                    /* args_   */ a_arguments,
+                    /* key_    */ a_i18n.key_.c_str(),
+                    /* args_   */ a_i18n.arguments_,
                     /* status_ */ a_status,
                     /* value_  */ static_cast<double>(a_step),
                     /* now_    */ true
@@ -577,14 +574,14 @@ namespace casper
             template <class A, typename S, S doneValue>
             void casper::job::deferrable::Base<A, S, doneValue>::Publish (const uint64_t& a_id, const std::string& a_rcid, const std::string& a_rjid,
                                                                           const float& a_percentage, const cc::easy::job::Job::Status& a_status,
-                                                                          const char* const a_i18n_key, const std::map<std::string, Json::Value>& a_arguments)
+                                                                          const ::cc::easy::job::I18N a_i18n)
             {
                 CC_DEBUG_FAIL_IF_NOT_AT_THREAD(DeferrableBaseClassAlias::thread_id_);
                 ev::loop::beanstalkd::Job::Publish(
                 a_id, a_rcid, a_rjid,
                 {
-                    /* key_    */ a_i18n_key,
-                    /* args_   */ a_arguments,
+                    /* key_    */ a_i18n.key_.c_str(),
+                    /* args_   */ a_i18n.arguments_,
                     /* status_ */ a_status,
                     /* value_  */ static_cast<double>(a_percentage),
                     /* now_    */ true
@@ -624,7 +621,7 @@ namespace casper
                 } catch (const cc::Exception& a_cc_exception) {
                     // ... set internal server error ....
                     code = DeferrableBaseClassAlias::SetFailedResponse(
-                            DeferrableBaseClassAlias::SetInternalServerError(&DeferrableBaseClassAlias::sk_i18n_error_, /* a_exception */ { /* code_ */ nullptr, /* exception_ */ a_cc_exception  }, payload),
+                            DeferrableBaseClassAlias::SetInternalServerError(&DeferrableBaseClassAlias::I18NError(), /* a_exception */ { /* code_ */ nullptr, /* exception_ */ a_cc_exception  }, payload),
                             payload, response
                     );
                 } catch (...) {
@@ -633,7 +630,7 @@ namespace casper
                     } catch (::cc::Exception& a_cc_exception) {
                         // ... set internal server error ....
                         code = DeferrableBaseClassAlias::SetFailedResponse(
-                                DeferrableBaseClassAlias::SetInternalServerError(&DeferrableBaseClassAlias::sk_i18n_error_, /* a_exception */ { /* code_ */ nullptr, /* exception_ */ a_cc_exception  },payload),
+                                DeferrableBaseClassAlias::SetInternalServerError(&DeferrableBaseClassAlias::I18NError(), /* a_exception */ { /* code_ */ nullptr, /* exception_ */ a_cc_exception  },payload),
                                 payload, response
                         );
                     }
@@ -650,7 +647,7 @@ namespace casper
 
                 // ... publish progress ( 100% ) ...
                 Publish(a_tracking.bjid_, a_tracking.rcid_, a_tracking.rjid_, doneValue, DeferrableBaseClassAlias::Status::InProgress,
-                        DeferrableBaseClassAlias::sk_i18n_in_progress_.key_, DeferrableBaseClassAlias::sk_i18n_in_progress_.arguments_
+                        DeferrableBaseClassAlias::I18NCompleted()
                 );
 
                 //
