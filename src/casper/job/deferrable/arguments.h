@@ -79,7 +79,7 @@ namespace casper
                 
             public: // Method(s) / Function(s)
                 
-                virtual bool Primitive () const { return false; };
+                virtual bool Primitive () const { return false; }
                 
             public: // Overloaded Operator(s)
                 

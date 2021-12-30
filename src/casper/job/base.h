@@ -48,7 +48,7 @@ namespace casper
             
         protected: // Virtual Method(s) / Function(s)
             
-            virtual void InnerSetup () {};
+            virtual void InnerSetup () {}
             virtual void InnerRun   (const int64_t& a_id, const Json::Value& a_payload, cc::easy::job::Job::Response& o_response) = 0;
             
         protected: // Method(s) / Function(s)
@@ -108,9 +108,15 @@ namespace casper
             Json::FastWriter jfw; jfw.omitEndingLineFeed();
 
             // ... log request ...
-            CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_INF, CC_JOB_LOG_STEP_IN,
-                           "Payload: %s", jfw.write(a_payload).c_str()
-            );
+            if ( ::casper::job::Basic<S>::config_.log_redact() ) {
+                CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_INF, CC_JOB_LOG_STEP_IN,
+                               "Payload: " SIZET_FMT " byte(s)", jfw.write(a_payload).size()
+                );
+            } else {
+                CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_INF, CC_JOB_LOG_STEP_IN,
+                               "Payload: %s", jfw.write(a_payload).c_str()
+                );
+            }
 
             // ... assuming BAD REQUEST ...
             o_response.code_ = CC_STATUS_CODE_BAD_REQUEST;

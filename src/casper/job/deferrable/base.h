@@ -222,9 +222,16 @@ namespace casper
                 Json::FastWriter jfw; jfw.omitEndingLineFeed();
                 
                 // ... log request ...
-                CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_INF, CC_JOB_LOG_STEP_IN,
-                            "Payload: %s", jfw.write(a_payload).c_str()
-                );
+                if ( ::casper::job::Basic<S>::config_.log_redact() ) {
+                    CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_INF, CC_JOB_LOG_STEP_IN,
+                                   "Payload: " SIZET_FMT " byte(s)", jfw.write(a_payload).size()
+                    );
+                } else {
+                    CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_INF, CC_JOB_LOG_STEP_IN,
+                                   "Payload: %s", jfw.write(a_payload).c_str()
+                    );
+                }
+                
 
                 // ... one-shot call ensured by dispatcher: load additional configs from dispatcher ...
                 d_.dispatcher_->Load();
@@ -280,10 +287,17 @@ namespace casper
                     Json::FastWriter jfw; jfw.omitEndingLineFeed();
                     
                     // ... response ...
-                    CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_INF, CC_JOB_LOG_STEP_OUT,
-                                   "Response: " CC_JOB_LOG_COLOR(RED) "%s" CC_LOGS_LOGGER_RESET_ATTRS,
-                                   jfw.write(o_response.payload_).c_str()
-                    );
+                    if ( true == DeferrableBaseClassAlias::config_.log_redact() ) {
+                        CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_INF, CC_JOB_LOG_STEP_OUT,
+                                       "Response: " CC_JOB_LOG_COLOR(RED) SIZET_FMT " byte(s)" CC_LOGS_LOGGER_RESET_ATTRS,
+                                       jfw.write(o_response.payload_).size()
+                        );
+                    } else {
+                        CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_INF, CC_JOB_LOG_STEP_OUT,
+                                       "Response: " CC_JOB_LOG_COLOR(RED) "%s" CC_LOGS_LOGGER_RESET_ATTRS,
+                                       jfw.write(o_response.payload_).c_str()
+                        );
+                    }
                     // ... status ...
                     CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_INF, CC_JOB_LOG_STEP_OUT,
                                    CC_JOB_LOG_COLOR(LIGHT_RED) "%s" CC_LOGS_LOGGER_RESET_ATTRS,

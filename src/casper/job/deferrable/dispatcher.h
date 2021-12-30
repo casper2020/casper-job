@@ -79,7 +79,7 @@ namespace casper
             public: // API Method(s) / Function(s)
                 
                 virtual void Setup (const Json::Value& a_config) = 0;
-                virtual void Load  (const bool a_reload = false) { (void)a_reload;};
+                virtual void Load  (const bool a_reload = false) { (void)a_reload;}
                 
             public: // API - One-shot Call Method(s) / Function(s)
                 
