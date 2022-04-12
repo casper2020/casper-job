@@ -148,27 +148,27 @@ namespace casper
             {
                 CC_DEBUG_FAIL_IF_NOT_AT_THREAD(thread_id_);
                 a_deferred->Bind({
-                    /* on_track_ */ [this] (Deferred<A>* a_deferred) {
+                    /* on_track_ */ [this] (Deferred<A>* a_deferred_t) {
                         // ... log ...
-                        callbacks_.on_log_tracking_(a_deferred->tracking_, CC_JOB_LOG_LEVEL_INF, CC_JOB_LOG_STEP_STATS, "Track  : " + a_deferred->id_);
+                        callbacks_.on_log_tracking_(a_deferred_t->tracking_, CC_JOB_LOG_LEVEL_INF, CC_JOB_LOG_STEP_STATS, "Track  : " + a_deferred_t->id_);
                         // ... track ...
-                        const auto it = running_.find(a_deferred->id_);
+                        const auto it = running_.find(a_deferred_t->id_);
                         if ( running_.end() != it ) {
-                            throw cc::Exception("Logic error, '%s' already tracked!", a_deferred->id_.c_str());
+                            throw cc::Exception("Logic error, '%s' already tracked!", a_deferred_t->id_.c_str());
                         }
-                        running_[a_deferred->id_] = a_deferred;
+                        running_[a_deferred_t->id_] = a_deferred_t;
                     },
-                    /* is_tracked_ */ [this] (Deferred<A>* a_deferred) -> bool {
-                        return ( running_.end() != running_.find(a_deferred->id_) );
+                    /* is_tracked_ */ [this] (Deferred<A>* a_deferred_i) -> bool {
+                        return ( running_.end() != running_.find(a_deferred_i->id_) );
                     },
-                    /* on_untrack_ */ [this] (Deferred<A>* a_deferred) {
+                    /* on_untrack_ */ [this] (Deferred<A>* a_deferred_u) {
                         // ... log ...
-                        callbacks_.on_log_tracking_(a_deferred->tracking_, CC_JOB_LOG_LEVEL_INF, CC_JOB_LOG_STEP_STATS, "Untrack: " + a_deferred->id_);
+                        callbacks_.on_log_tracking_(a_deferred_u->tracking_, CC_JOB_LOG_LEVEL_INF, CC_JOB_LOG_STEP_STATS, "Untrack: " + a_deferred_u->id_);
                         // ... untrack ...
-                        const auto it = running_.find(a_deferred->id_);
+                        const auto it = running_.find(a_deferred_u->id_);
                         if ( running_.end() == it ) {
                             // TODO: review old behaviour was:  throw cc::Exception("Logic error, '%s' not found!", a_deferred->id_.c_str());
-                            delete a_deferred;
+                            delete a_deferred_u;
                         } else {
                             delete it->second;
                             running_.erase(it);

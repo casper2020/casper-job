@@ -153,6 +153,30 @@ namespace casper
                     return response_;
                 }
                 
+                /**
+                 * @brief Override some \link Response \link values.
+                 *
+                 * @param a_code         HTTP Status Code
+                 * @param a_content_type HTTP Content-Type header value.
+                 * @param a_body         HTTP response body.
+                 * @param a_parse        When true body will be parsed as JSON.
+                 */
+                inline void OverrideResponse (const uint16_t a_code, const std::string& a_content_type, const std::string& a_body, const bool a_parse = true)
+                {
+                    response_.Set(a_code, a_content_type, a_body, response_.rtt(), a_parse);
+                }
+                
+                /**
+                 * @brief Override some \link Response \link values.
+                 *
+                 * @param a_code      HTTP Status Code
+                 * @param a_exception Exception.
+                 */
+                inline void OverrideResponse (const uint16_t a_code, const cc::Exception& a_exception)
+                {
+                    response_.Set(a_code, a_exception);
+                }
+                
             protected: // API - Method(s) / Function(s)
                 
                 void OnProgress                 (const Deferred<A>* a_deferred);
@@ -371,34 +395,34 @@ namespace casper
                 }
                 // ... schedule callback ...
                 if ( 0 != a_delay ) {
-                    callbacks_.on_looper_thread_deferred_(a_id, [this, a_function, a_daredevil](const std::string& a_id) {
+                    callbacks_.on_looper_thread_deferred_(a_id, [this, a_function, a_daredevil](const std::string& a_id2) {
                         // ... untrack callback id ...
                         if ( false == a_daredevil ) {
                             //..  ⚠️ do not use std::lock_guard here ⚠️ ...
                             pending_.mutex_.lock();
-                            const auto it = pending_.callbacks_.find(a_id);
+                            const auto it = pending_.callbacks_.find(a_id2);
                             if ( pending_.callbacks_.end() != it ) {
                                 pending_.callbacks_.erase(it);
                             }
                             pending_.mutex_.unlock();
                         }
                         // ... perform ...
-                        a_function(a_id);
+                        a_function(a_id2);
                     }, a_delay);
                 } else {
-                    callbacks_.on_looper_thread_(a_id, [this, a_function, a_daredevil](const std::string& a_id) {
+                    callbacks_.on_looper_thread_(a_id, [this, a_function, a_daredevil](const std::string& a_id2) {
                         // ... untrack callback id ...
                         if ( false == a_daredevil ) {
                             //..  ⚠️ do not use std::lock_guard here ⚠️ ...
                             pending_.mutex_.lock();
-                            const auto it = pending_.callbacks_.find(a_id);
+                            const auto it = pending_.callbacks_.find(a_id2);
                             if ( pending_.callbacks_.end() != it ) {
                                 pending_.callbacks_.erase(it);
                             }
                             pending_.mutex_.unlock();
                         }
                         // ... perform ...
-                        a_function(a_id);
+                        a_function(a_id2);
                     });
                 }
             }

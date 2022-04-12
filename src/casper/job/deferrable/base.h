@@ -284,8 +284,6 @@ namespace casper
                     );
                 } else {
                     
-                    Json::FastWriter jfw; jfw.omitEndingLineFeed();
-                    
                     // ... response ...
                     if ( true == DeferrableBaseClassAlias::config_.log_redact() ) {
                         CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_INF, CC_JOB_LOG_STEP_OUT,

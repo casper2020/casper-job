@@ -51,8 +51,6 @@ namespace casper
             static const ::cc::easy::job::I18N sk_i18n_error_;
             
         protected: // Const Data
-            
-            CC_IF_DEBUG_DECLARE_VAR(const cc::debug::Threading::ThreadID, thread_id_);
 
 #define __CASPER_JOB(a_level, a_id, a_format, ...) \
 if ( a_level <= casper::job::Basic<S>::log_level_ ) \
@@ -83,7 +81,13 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
         
         protected: // Inherited Virtual Method(s) / Function(s) - from cc::easy::job::Job
             
-            virtual void LogResponse (const cc::easy::job::Job::Response& a_response, const Json::Value& a_payload);
+            virtual void LogResponse             (const cc::easy::job::Job::Response& a_response, const Json::Value& a_payload);
+            
+        protected: // Virtual Method(s) / Function(s) 
+            
+            virtual void LogMessage              (const int a_level, const char* const a_step, const std::string& a_message) const;
+            virtual void LogResponseInterception (const std::string& a_message);
+            virtual void LogResponseOverride     (const uint16_t a_code, const std::string& a_content_type, const std::string& a_body, bool a_original);
 
         protected: // Inline Method(s) / Function(s)
 
@@ -125,8 +129,7 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
         template <typename S>
         casper::job::Basic<S>::Basic (const std::string& a_tube,
                                           const ev::Loggable::Data& a_loggable_data, const cc::easy::job::Job::Config& a_config)
-            : cc::easy::job::Job(a_loggable_data, a_tube, a_config)
-             CC_IF_DEBUG_CONSTRUCT_APPEND_SET_VAR(thread_id_, cc::debug::Threading::GetInstance().CurrentThreadID(),),
+            : cc::easy::job::Job(a_loggable_data, a_tube, a_config),
              i18n_in_progress_(nullptr), i18n_completed_(nullptr), i18n_error_(nullptr)
         {
             /* empty */
@@ -248,6 +251,19 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
                 /* now_    */ true
             });
         }
+    
+        /**
+         * @brief Load this job message.
+         *
+         * @param a_level
+         * @param a_step
+         * @param a_message
+         */
+        template <typename S>
+        void casper::job::Basic<S>::LogMessage (const int a_level, const char* const a_step, const std::string& a_message) const
+        {
+            CASPER_JOB_LOG(a_level, a_step, "%s", a_message.c_str());
+        }
             
         /**
          * @brief Load this job response.
@@ -313,6 +329,63 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
                                CC_JOB_LOG_COLOR(LIGHT_RED) "%s" CC_LOGS_LOGGER_RESET_ATTRS,
                                "Failed"
                 );
+            }
+        }
+    
+        /**
+         * @brief Load this job response.
+         *
+         * @param a_message Message to log.
+         */
+        template <typename S>
+        void casper::job::Basic<S>::LogResponseInterception (const std::string& a_message)
+        {
+            // ... log ...
+            CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_WRN, CC_JOB_LOG_STEP_INFO, CC_JOB_LOG_COLOR(YELLOW) "%s" CC_LOGS_LOGGER_RESET_ATTRS, a_message.c_str());
+        }
+    
+        /**
+         * @brief Loag this job response override notice(s).
+         *
+         * @param a_code         HTTP status code.
+         * @param a_content_type HTTP Content-Type header value.
+         * @param a_body         Body.
+         * @param a_original     True if it's the original response, false otherwise.
+         */
+        template <typename S>
+        void casper::job::Basic<S>::LogResponseOverride (const uint16_t a_code, const std::string& a_content_type, const std::string& a_body, bool a_original)
+        {
+            const auto it                 = cc::i18n::Singleton::k_http_status_codes_map_.find(a_code);
+            const std::string status_name = ( cc::i18n::Singleton::k_http_status_codes_map_.end() != it ? it->second : "???" );
+            const char* const what        = ( a_original ? "Original" : "Overriden" );
+            const char* const color       = ( a_original ? CC_JOB_LOG_COLOR(CYAN) : CC_JOB_LOG_COLOR(YELLOW) );
+            // ... status ...
+            {
+                if ( CC_STATUS_CODE_OK == a_code ) {
+                    CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_WRN, CC_JOB_LOG_STEP_INFO,
+                                   "%s%s Status: " CC_JOB_LOG_COLOR(GREEN) UINT16_FMT " - %s" CC_LOGS_LOGGER_RESET_ATTRS,
+                                   color, what, a_code, status_name.c_str()
+                    );
+                } else {
+                    CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_WRN, CC_JOB_LOG_STEP_INFO,
+                                   "%s%s Status: " CC_JOB_LOG_COLOR(RED) UINT16_FMT " - %s" CC_LOGS_LOGGER_RESET_ATTRS,
+                                   color, what, a_code, status_name.c_str()
+                    );
+                }
+            }
+            // ... response ...
+            {
+                if ( true == config_.log_redact() ) {
+                    CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_WRN, CC_JOB_LOG_STEP_INFO,
+                                   "%s%s Body: " CC_JOB_LOG_COLOR(DARK_GRAY) SIZET_FMT " byte(s)" CC_LOGS_LOGGER_RESET_ATTRS,
+                                   color, what, a_body.length()
+                    );
+                } else {
+                    CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_WRN, CC_JOB_LOG_STEP_INFO,
+                                   "%s%s Body: " CC_JOB_LOG_COLOR(DARK_GRAY) "%s" CC_LOGS_LOGGER_RESET_ATTRS,
+                                   color, what, a_body.c_str()
+                    );
+                }
             }
         }
     
