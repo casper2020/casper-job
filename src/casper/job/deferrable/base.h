@@ -88,8 +88,9 @@ namespace casper
 
             protected: // Virtual Method(s) / Function(s)
                 
-                virtual void InnerSetup () = 0;
-                virtual void InnerRun   (const int64_t& a_id, const Json::Value& a_payload, cc::easy::job::Job::Response& o_response) = 0;
+                virtual void InnerSetup   () = 0;
+                virtual void InnerRun     (const int64_t& a_id, const Json::Value& a_payload, cc::easy::job::Job::Response& o_response) = 0;
+                virtual void InnerCleanUp () {}
 
             protected: // Method(s) / Function(s) - Callbacks
                 
@@ -237,10 +238,15 @@ namespace casper
                 d_.dispatcher_->Load();
 
                 try {
-                    
+                    // ... pre-run clean up ..
+                    InnerCleanUp();
+                    // ... run ...
                     InnerRun(a_id, a_payload, o_response);
-                    
+                    // ... post-run clean up ..
+                    InnerCleanUp();
                 } catch (const deferrable::BadRequestException& a_br_exception) {
+                    // ... post-failure clean up ..
+                    InnerCleanUp();
                     // ... parsing error ...
                     o_response.code_ = DeferrableBaseClassAlias::SetBadRequest(/* a_i18n */ &DeferrableBaseClassAlias::I18NError(),
                                                                                /* a_error */ {
@@ -250,6 +256,8 @@ namespace casper
                                                                                 o_response.payload_
                     );
                 } catch (const ::cc::Exception& a_cc_exception) {
+                    // ... post-failure clean up ..
+                    InnerCleanUp();
                     // ... parsing error ...
                     o_response.code_ = DeferrableBaseClassAlias::SetInternalServerError(/* a_i18n */ &DeferrableBaseClassAlias::I18NError(),
                                                                                             /* a_error */ {
@@ -259,6 +267,8 @@ namespace casper
                                                                                             o_response.payload_
                     );
                 } catch (...) {
+                    // ... post-failure clean up ..
+                    InnerCleanUp();
                     try {
                         ::cc::Exception::Rethrow(/* a_unhandled */ true, __FILE__, __LINE__, __FUNCTION__);
                     } catch (::cc::Exception& a_cc_exception) {
