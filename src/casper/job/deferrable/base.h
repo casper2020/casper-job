@@ -244,6 +244,21 @@ namespace casper
                     InnerRun(a_id, a_payload, o_response);
                     // ... post-run clean up ..
                     InnerCleanUp();
+                } catch (const ::cc::CodedException& a_coded_exception) {
+                    // ... post-failure clean up ..
+                    InnerCleanUp();
+                    // ... error ...
+                    try {
+                        o_response.code_ = a_coded_exception.code_;
+                        const ::cc::easy::JSON<::cc::Exception> json; json.Parse(a_coded_exception.what(), o_response.payload_);
+                    } catch(...) {
+                        o_response.code_ = DeferrableBaseClassAlias::SetError(a_coded_exception.code_, /* a_i18n */ nullptr,
+                                                    /* a_error */ ::cc::easy::job::InternalError{
+                                                        /* code_ */ nullptr,
+                                                        /* why_ */ a_coded_exception.what()
+                                                    }, o_response.payload_
+                        );
+                    }
                 } catch (const deferrable::BadRequestException& a_br_exception) {
                     // ... post-failure clean up ..
                     InnerCleanUp();
