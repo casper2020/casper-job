@@ -157,8 +157,10 @@ namespace casper
                  * @param a_headers      HTTP headers.
                  * @param a_body         Body.
                  * @param a_rtt          Round time trip in milliseconds.
+                 * @param a_parse        When true body will be parsed as JSON.
                  */
-                inline void Set (const uint16_t& a_code, const std::string& a_content_type, const std::map<std::string, std::string>& a_headers, const std::string& a_body, const size_t& a_rtt)
+                inline void Set (const uint16_t& a_code, const std::string& a_content_type, const std::map<std::string, std::string>& a_headers, const std::string& a_body, const size_t& a_rtt,
+                                 const bool a_parse = false)
                 {
                     code_         = a_code;
                     headers_      = a_headers;
@@ -169,7 +171,11 @@ namespace casper
                         exception_ = nullptr;
                     }
                     rtt_ = a_rtt;
-                    json_.clear(); json_ = Json::Value::null;
+                    if ( true == a_parse ) {
+                        Parse();
+                    } else {
+                        json_.clear(); json_ = Json::Value::null;
+                    }
                 }
                 
                 

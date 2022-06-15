@@ -169,6 +169,20 @@ namespace casper
                 /**
                  * @brief Override some \link Response \link values.
                  *
+                 * @param a_code         HTTP Status Code
+                 * @param a_content_type HTTP Content-Type header value.
+                 * @param a_headers      HTTP headers.
+                 * @param a_body         HTTP response body.
+                 * @param a_parse        When true body will be parsed as JSON.
+                 */
+                inline void OverrideResponse (const uint16_t a_code, const std::string& a_content_type, const std::map<std::string, std::string>& a_headers, const std::string& a_body, const bool a_parse = true)
+                {
+                    response_.Set(a_code, a_content_type, a_headers, a_body, response_.rtt(), a_parse);
+                }
+                
+                /**
+                 * @brief Override some \link Response \link values.
+                 *
                  * @param a_code      HTTP Status Code
                  * @param a_exception Exception.
                  */
