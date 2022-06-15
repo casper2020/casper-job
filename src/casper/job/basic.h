@@ -91,7 +91,8 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
 
         protected: // Inline Method(s) / Function(s)
 
-            const Json::Value& Payload (const Json::Value& a_payload, bool* o_broker = nullptr);
+            const Json::Value& Payload        (const Json::Value& a_payload, bool* o_broker = nullptr, bool* o_with_job_role = nullptr);
+            const bool         SourceIsBroker (const Json::Value& a_payload, bool* o_with_job_role);
                             
         protected: // Method(s) / Function(s)
             
@@ -171,22 +172,23 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
         /**
          * @brief Extract 'true' payload from provided data.
          *
-         * @param a_payload  Payload to inspect.
-         * @param o_broker   If not null, check if 'source' was nginx-broker.
+         * @param a_payload       Payload to inspect.
+         * @param o_broker        If not null, check if 'source' was nginx-broker.
+         * @param o_with_job_role If not null, check if 'source' is nginx-broker and it has job as 'role'.
          *
          * @return Payload object reference.
          */
         template <typename S>
-        inline const Json::Value& casper::job::Basic<S>::Payload (const Json::Value& a_payload, bool* o_broker)
+        inline const Json::Value& casper::job::Basic<S>::Payload (const Json::Value& a_payload, bool* o_broker, bool* o_with_job_role)
         {
             const ::cc::easy::JSON<::cc::Exception> json;
             const Json::Value c_ttr      = Json::Value(static_cast<Json::Int64>(TTR()));
             const Json::Value c_validity = Json::Value(static_cast<Json::Int64>(Validity()));
-            // ... NGINX-BROKER 'jobify' module awareness ...
+            // ... NGINX-XXX module awareness ...
             if ( true == a_payload.isMember("body") && true == a_payload.isMember("headers") ) {
-                // ... check source?
-                if ( nullptr != o_broker ) { // TODO: review this code
-                    (*o_broker) = ( true == a_payload.isMember("__nginx_broker__") );
+                // ... from nginx-broker?
+                if ( nullptr != o_broker ) {
+                    (*o_broker) = SourceIsBroker(a_payload, o_with_job_role);
                 }
                 // ... read TTR and validity ...
                 const int64_t ttr      = static_cast<int64_t>(json.Get(a_payload["body"], "ttr", Json::ValueType::uintValue, &c_ttr).asUInt64());
@@ -196,6 +198,13 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
                 // ... from nginx-broker 'jobify' module ...
                 return a_payload["body"];
             } else {
+                // ... reset ...
+                if ( nullptr != o_broker ) {
+                    (*o_broker) = false;
+                }
+                if ( nullptr != o_with_job_role ) {
+                    (*o_with_job_role) = false;
+                }
                 // ... read TTR and validity ...
                 const int64_t ttr      = static_cast<int64_t>(json.Get(a_payload, "ttr", Json::ValueType::uintValue, &c_ttr).asUInt64());
                 const int64_t validity = static_cast<int64_t>(json.Get(a_payload, "validity", Json::ValueType::uintValue, &c_validity).asUInt64());
@@ -204,6 +213,56 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
                 // ... direct from beanstalkd queue ...
                 return a_payload;
             }
+        }
+    
+    
+        /**
+         * @brief Check if this job was injected by nginx-broker.
+         *
+         * @param a_payload       Payload to inspect.
+         * @param o_with_job_role If not null, check if 'source' is nginx-broker and it has job as 'role'.
+         *
+         * @return True if source is from broker, false otherwise.
+         */
+        template <typename S>
+        inline const bool casper::job::Basic<S>::SourceIsBroker (const Json::Value& a_payload, bool* o_with_job_role)
+        {
+            // ... reset ...
+            if ( nullptr != o_with_job_role ) {
+                (*o_with_job_role) = false;
+            }
+            // ... from nginx-broker?
+            if ( not ( true == a_payload.isMember("body") && true == a_payload.isMember("headers") && ( true == a_payload.isMember("__nginx_broker__") ) ) ) {
+                // ... no ...
+                return false;
+            }
+            // ... yes, from nginx-broker ...
+            if ( nullptr == o_with_job_role ) {
+                // ... done ...
+                return true;
+            }
+            // ... test role mask ...
+            const auto& headers = a_payload["headers"];
+            std::smatch match;
+            char* end_ptr = nullptr;
+            for ( Json::ArrayIndex idx = 0 ; idx < headers.size(); ++idx ) {
+                const std::string value = headers[idx].asString();
+                const std::regex hex_expr("X-CASPER-ROLE-MASK:\\s+(0[xX][0-9a-fA-F]+)");
+                if ( true == std::regex_match(value, match, hex_expr) && 2 == match.size() ) {
+                    const std::string v = match[1].str();
+                    (*o_with_job_role) = ( 0 != ( std::strtoull(v.c_str(), &end_ptr, 16) & 0x40000000 ) );
+                    break;
+                } else {
+                    const std::regex dec_expr("X-CASPER-ROLE-MASK:\\s+(\\d+)");
+                    if ( true == std::regex_match(value, match, dec_expr) && 2 == match.size() ) {
+                        const std::string v = match[1].str();
+                        (*o_with_job_role) = ( 0 != ( std::strtoull(v.c_str(), &end_ptr, 10) & 0x40000000 ) );
+                        break;
+                    }
+                }
+            }
+            // ... done ...
+            return true;
         }
 
         // MARK: - PROGRESS REPORT HELPER(S)

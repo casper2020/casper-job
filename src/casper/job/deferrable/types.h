@@ -164,6 +164,14 @@ namespace casper
                 {
                     code_         = a_code;
                     headers_      = a_headers;
+                    const auto it = headers_.find("Content-Length");
+                    if ( headers_.end() != it ) {
+                        if ( it->second.length() > 0 && ' ' == it->second.c_str()[0] ) {
+                            headers_["Content-Length"] = ' ' + std::to_string(a_body.length());
+                        } else {
+                            headers_["Content-Length"] = std::to_string(a_body.length());
+                        }
+                    }
                     body_         = a_body;
                     content_type_ = a_content_type;
                     if ( nullptr != exception_ ) {
