@@ -46,6 +46,10 @@
 #define CASPER_JOB_REL_HASH "r.r.h"
 #endif
 
+#ifndef CASPER_JOB_REL_TARGET
+#define CASPER_JOB_REL_TARGET "r.r.t"
+#endif
+
 #ifndef CASPER_JOB_INFO
 #define CASPER_JOB_INFO CASPER_JOB_NAME " v" CASPER_JOB_VERSION
 #endif

@@ -58,6 +58,7 @@ int main(int argc, const char * argv[]) {
             /* rel_date_       */ CASPER_JOB_REL_DATE,
             /* rel_branch_     */ CASPER_JOB_REL_BRANCH,
             /* rel_hash_       */ CASPER_JOB_REL_HASH,
+            /* rel_target_     */ CASPER_JOB_REL_TARGET,
             /* info_           */ short_info, // short version of CASPER_JOB_INFO
             /* banner_         */ CASPER_JOB_BANNER,
             /* argc_           */ argc,
