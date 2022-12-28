@@ -42,7 +42,7 @@ namespace casper
         {
                     
             typedef struct  {
-                const int64_t     bjid_; //!< BEANSTALKD job ID
+                const uint64_t    bjid_; //!< BEANSTALKD job ID
                 const std::string rjnr_; //!< REDIS job number
                 const std::string rjid_; //!< REDIS job key
                 const std::string rcid_; //!< REDIS channel ID
