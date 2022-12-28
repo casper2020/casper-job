@@ -89,7 +89,7 @@ namespace casper
             protected: // Virtual Method(s) / Function(s)
                 
                 virtual void InnerSetup   () = 0;
-                virtual void InnerRun     (const int64_t& a_id, const Json::Value& a_payload, cc::easy::job::Job::Response& o_response) = 0;
+                virtual void InnerRun     (const uint64_t& a_id, const Json::Value& a_payload, cc::easy::job::Job::Response& o_response) = 0;
                 virtual void InnerCleanUp () {}
 
             protected: // Method(s) / Function(s) - Callbacks
@@ -108,7 +108,7 @@ namespace casper
                 void OnDeferredRequestLogVerbose (const deferrable::Deferred<A>* a_deferred, const std::string& o_payload);
                 void OnDeferredRequestLog        (const deferrable::Deferred<A>*,const uint8_t, const char* const, const std::string&);
                 
-                void OnDeferredRequestLogTracking  (const Tracking& a_tracking, const int a_level, const char* const a_step, const std::string& a_message);
+                void OnDeferredRequestLogTracking  (const Tracking& a_tracking, const size_t a_level, const char* const a_step, const std::string& a_message);
                 
             protected: // Method(s) / Function(s)
 
@@ -567,7 +567,7 @@ namespace casper
              * @param a_message  Message to log
              */
             template <class A, typename S, S doneValue>
-            void casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLogTracking (const Tracking& a_tracking, const int a_level, const char* const a_step, const std::string& a_message)
+            void casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLogTracking (const Tracking& a_tracking, const size_t a_level, const char* const a_step, const std::string& a_message)
             {
                 if ( CC_JOB_LOG_LEVEL_DBG == a_level && 0 == strcasecmp(a_step, CC_JOB_LOG_STEP_DUMP) ) {
                     CASPER_JOB_LOG_DEFERRED(a_level, a_tracking, CC_JOB_LOG_STEP_DUMP,

@@ -49,7 +49,7 @@ namespace casper
         protected: // Virtual Method(s) / Function(s)
             
             virtual void InnerSetup () {}
-            virtual void InnerRun   (const int64_t& a_id, const Json::Value& a_payload, cc::easy::job::Job::Response& o_response) = 0;
+            virtual void InnerRun   (const uint64_t& a_id, const Json::Value& a_payload, cc::easy::job::Job::Response& o_response) = 0;
             
         protected: // Method(s) / Function(s)
             

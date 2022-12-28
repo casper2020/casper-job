@@ -80,7 +80,7 @@ namespace casper
                  *
                  * @param o_response JSON object.
                  */
-                virtual void InnerRun (const int64_t& a_id, const Json::Value& a_payload, cc::easy::job::Job::Response& o_response)
+                virtual void InnerRun (const uint64_t& a_id, const Json::Value& a_payload, cc::easy::job::Job::Response& o_response)
                 {
                     // ... assuming BAD REQUEST ...
                     o_response.code_ = CC_STATUS_CODE_BAD_REQUEST;
