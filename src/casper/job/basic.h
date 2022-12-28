@@ -85,7 +85,7 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
             
         protected: // Virtual Method(s) / Function(s) 
             
-            virtual void LogMessage              (const int a_level, const char* const a_step, const std::string& a_message) const;
+            virtual void LogMessage              (const size_t a_level, const char* const a_step, const std::string& a_message) const;
             virtual void LogResponseInterception (const std::string& a_message);
             virtual void LogResponseOverride     (const uint16_t a_code, const std::string& a_content_type, const std::string& a_body, bool a_original);
 
@@ -191,8 +191,8 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
                     (*o_broker) = SourceIsBroker(a_payload, o_with_job_role);
                 }
                 // ... read TTR and validity ...
-                const int64_t ttr      = static_cast<int64_t>(json.Get(a_payload["body"], "ttr", Json::ValueType::uintValue, &c_ttr).asUInt64());
-                const int64_t validity = static_cast<int64_t>(json.Get(a_payload["body"], "validity", Json::ValueType::uintValue, &c_validity).asUInt64());
+                const uint64_t ttr      = json.Get(a_payload["body"], "ttr", Json::ValueType::uintValue, &c_ttr).asUInt64();
+                const uint64_t validity = json.Get(a_payload["body"], "validity", Json::ValueType::uintValue, &c_validity).asUInt64();
                 // ... read TTR and validity ...
                 SetTTRAndValidity(ttr, validity);
                 // ... from nginx-broker 'jobify' module ...
@@ -206,8 +206,8 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
                     (*o_with_job_role) = false;
                 }
                 // ... read TTR and validity ...
-                const int64_t ttr      = static_cast<int64_t>(json.Get(a_payload, "ttr", Json::ValueType::uintValue, &c_ttr).asUInt64());
-                const int64_t validity = static_cast<int64_t>(json.Get(a_payload, "validity", Json::ValueType::uintValue, &c_validity).asUInt64());
+                const uint64_t ttr      = json.Get(a_payload, "ttr", Json::ValueType::uintValue, &c_ttr).asUInt64();
+                const uint64_t validity = json.Get(a_payload, "validity", Json::ValueType::uintValue, &c_validity).asUInt64();
                 // ... read TTR and validity ...
                 SetTTRAndValidity(ttr, validity);
                 // ... direct from beanstalkd queue ...
@@ -319,7 +319,7 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
          * @param a_message
          */
         template <typename S>
-        void casper::job::Basic<S>::LogMessage (const int a_level, const char* const a_step, const std::string& a_message) const
+        void casper::job::Basic<S>::LogMessage (const size_t a_level, const char* const a_step, const std::string& a_message) const
         {
             CASPER_JOB_LOG(a_level, a_step, "%s", a_message.c_str());
         }
@@ -418,17 +418,27 @@ __CASPER_JOB(a_level, casper::job::Basic<S>::ID(), \
             const std::string status_name = ( cc::i18n::Singleton::k_http_status_codes_map_.end() != it ? it->second : "???" );
             const char* const what        = ( a_original ? "Original" : "Overriden" );
             const char* const color       = ( a_original ? CC_JOB_LOG_COLOR(CYAN) : CC_JOB_LOG_COLOR(YELLOW) );
-            // ... status ...
+            // ... status && content-type ...
             {
                 if ( CC_STATUS_CODE_OK == a_code ) {
                     CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_WRN, CC_JOB_LOG_STEP_INFO,
                                    "%s%s Status: " CC_JOB_LOG_COLOR(GREEN) UINT16_FMT " - %s" CC_LOGS_LOGGER_RESET_ATTRS,
                                    color, what, a_code, status_name.c_str()
                     );
+                    // ... content-type
+                    CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_WRN, CC_JOB_LOG_STEP_INFO,
+                                   "%s%s Content-Type: " CC_JOB_LOG_COLOR(GREEN) UINT16_FMT " - %s" CC_LOGS_LOGGER_RESET_ATTRS,
+                                   color, what, a_code, a_content_type.c_str()
+                    );
                 } else {
                     CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_WRN, CC_JOB_LOG_STEP_INFO,
                                    "%s%s Status: " CC_JOB_LOG_COLOR(RED) UINT16_FMT " - %s" CC_LOGS_LOGGER_RESET_ATTRS,
                                    color, what, a_code, status_name.c_str()
+                    );
+                    // ... content-type
+                    CASPER_JOB_LOG(CC_JOB_LOG_LEVEL_WRN, CC_JOB_LOG_STEP_INFO,
+                                   "%s%s Content-Type: " CC_JOB_LOG_COLOR(RED) UINT16_FMT " - %s" CC_LOGS_LOGGER_RESET_ATTRS,
+                                   color, what, a_code, a_content_type.c_str()
                     );
                 }
             }

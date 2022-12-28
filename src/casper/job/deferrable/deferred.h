@@ -65,8 +65,8 @@ namespace casper
                     std::function<void(const Deferred<A>*, const std::string&)>                                    on_log_deferred_debug_;
                     std::function<void(const Deferred<A>*, const std::string&)>                                    on_log_deferred_error_;
                     std::function<void(const Deferred<A>*, const std::string&)>                                    on_log_deferred_verbose_;
-                    std::function<void(const Deferred<A>*, const uint8_t, const char* const, const std::string&)>  on_log_deferred_;
-                    std::function<void(const Tracking&, const size_t, const char* const, const std::string&)>         on_log_tracking_;
+                    std::function<void(const Deferred<A>*, const size_t, const char* const, const std::string&)>   on_log_deferred_;
+                    std::function<void(const Tracking&, const size_t, const char* const, const std::string&)>      on_log_tracking_;
                 } Callbacks;
                 
                 typedef struct {
@@ -209,8 +209,8 @@ namespace casper
                 void OnLogDeferredError         (const Deferred<A>* a_deferred, const std::string& a_message);
                 void OnLogDeferredVerbose       (const Deferred<A>* a_deferred, const std::string& a_message);
                 
-                void OnLogDeferred              (const Deferred<A>* a_deferred, const uint8_t a_level, const char* const a_step, const std::string& a_message);
-                void OnLogTracking              (const Tracking& a_tracking   , const int a_level, const char* const a_step, const std::string& a_message);                
+                void OnLogDeferred              (const Deferred<A>* a_deferred, const size_t a_level, const char* const a_step, const std::string& a_message);
+                void OnLogTracking              (const Tracking& a_tracking   , const size_t a_level, const char* const a_step, const std::string& a_message);
                 
             }; // end of class 'Deferred'
 
@@ -519,7 +519,7 @@ namespace casper
              * @param a_message  Message to log.
              */
             template <class A>
-            inline void Deferred<A>::OnLogDeferred (const Deferred<A>* a_deferred, const uint8_t a_level, const char* const a_step, const std::string& a_message)
+            inline void Deferred<A>::OnLogDeferred (const Deferred<A>* a_deferred, const size_t a_level, const char* const a_step, const std::string& a_message)
             {
                 callbacks_.on_log_deferred_(a_deferred, a_level, a_step, a_message);
             }
@@ -533,7 +533,7 @@ namespace casper
              * @param a_message  Message to log.
              */
             template <class A>
-            inline void Deferred<A>::OnLogTracking (const Tracking& a_tracking, const int a_level, const char* const a_step, const std::string& a_message)
+            inline void Deferred<A>::OnLogTracking (const Tracking& a_tracking, const size_t a_level, const char* const a_step, const std::string& a_message)
             {
                 callbacks_.on_log_tracking_(a_tracking, a_level, a_step, a_message);
             }

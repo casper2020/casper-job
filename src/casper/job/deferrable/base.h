@@ -84,7 +84,7 @@ namespace casper
             public: // Inherited Virtual Method(s) / Function(s) - from cc::easy::job::Runnable
 
                 virtual void Setup ();
-                virtual void Run  (const int64_t& a_id, const Json::Value& a_payload, cc::easy::job::Job::Response& o_response);
+                virtual void Run  (const uint64_t& a_id, const Json::Value& a_payload, cc::easy::job::Job::Response& o_response);
 
             protected: // Virtual Method(s) / Function(s)
                 
@@ -106,7 +106,7 @@ namespace casper
                 void OnDeferredRequestLogDebug   (const deferrable::Deferred<A>* a_deferred, const std::string& o_payload);
                 void OnDeferredRequestLogError   (const deferrable::Deferred<A>* a_deferred, const std::string& o_payload);
                 void OnDeferredRequestLogVerbose (const deferrable::Deferred<A>* a_deferred, const std::string& o_payload);
-                void OnDeferredRequestLog        (const deferrable::Deferred<A>*,const uint8_t, const char* const, const std::string&);
+                void OnDeferredRequestLog        (const deferrable::Deferred<A>*,const size_t, const char* const, const std::string&);
                 
                 void OnDeferredRequestLogTracking  (const Tracking& a_tracking, const size_t a_level, const char* const a_step, const std::string& a_message);
                 
@@ -125,7 +125,7 @@ namespace casper
             protected: // Method(s) / Function(s) - Helpers
 
                 void SetDeferredRequestFailed   (const std::string& a_dpid, const deferrable::Response& a_response, const ::cc::Exception* a_exception, Json::Value& o_payload);
-                void LogDeferredRequestMessage  (const std::string& a_dpid, const int a_level, const deferrable::Tracking& a_tracking, const std::string& a_message);
+                void LogDeferredRequestMessage  (const std::string& a_dpid, const size_t a_level, const deferrable::Tracking& a_tracking, const std::string& a_message);
                 void LogDeferredRequestResponse (const std::string& a_dpid, const deferrable::Tracking& a_tracking, const deferrable::Response& a_response);
                 
             }; // end of class 'Job'
@@ -212,7 +212,7 @@ namespace casper
              * @param o_response JSON object.
              */
             template <class A, typename S, S doneValue>
-            void casper::job::deferrable::Base<A, S, doneValue>::Run (const int64_t& a_id, const Json::Value& a_payload, cc::easy::job::Job::Response& o_response)
+            void casper::job::deferrable::Base<A, S, doneValue>::Run (const uint64_t& a_id, const Json::Value& a_payload, cc::easy::job::Job::Response& o_response)
             {
                 // ... sanity check ...
                 CC_DEBUG_FAIL_IF_NOT_AT_THREAD(DeferrableBaseClassAlias::thread_id_);
@@ -537,7 +537,7 @@ namespace casper
              * @param a_message  Message to log
              */
             template <class A, typename S, S doneValue>
-            void casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLog (const deferrable::Deferred<A>* a_deferred, const uint8_t a_level, const char* const a_step, const std::string& a_message)
+            void casper::job::deferrable::Base<A, S, doneValue>::OnDeferredRequestLog (const deferrable::Deferred<A>* a_deferred, const size_t a_level, const char* const a_step, const std::string& a_message)
             {
                 if ( 0 == strcasecmp(a_step, CC_JOB_LOG_STEP_DUMP) || 0 == strcasecmp(a_step, CC_JOB_LOG_STEP_HTTP) ) {
                     CASPER_JOB_LOG_DEFERRED(a_level, a_deferred->tracking_, a_step,
@@ -793,7 +793,7 @@ namespace casper
              * @param a_message  Message to log.
              */
             template <class A, typename S, S doneValue>
-            void casper::job::deferrable::Base<A, S, doneValue>::LogDeferredRequestMessage (const std::string& a_dpid, const int a_level, const deferrable::Tracking& a_tracking, const std::string& a_message)
+            void casper::job::deferrable::Base<A, S, doneValue>::LogDeferredRequestMessage (const std::string& a_dpid, const size_t a_level, const deferrable::Tracking& a_tracking, const std::string& a_message)
             {
                 CC_DEBUG_FAIL_IF_NOT_AT_THREAD(DeferrableBaseClassAlias::thread_id_);
                 // ... log message ...

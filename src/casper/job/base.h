@@ -44,7 +44,7 @@ namespace casper
         public: // Inherited Virtual Method(s) / Function(s) - from cc::easy::job::Runnable
 
             virtual void Setup ();
-            virtual void Run   (const int64_t& a_id, const Json::Value& a_payload, cc::easy::job::Job::Response& o_response);
+            virtual void Run   (const uint64_t& a_id, const Json::Value& a_payload, cc::easy::job::Job::Response& o_response);
             
         protected: // Virtual Method(s) / Function(s)
             
@@ -53,7 +53,7 @@ namespace casper
             
         protected: // Method(s) / Function(s)
             
-            void Log (const int a_level, const char* const a_step, const std::string& a_message);
+            void Log (const size_t a_level, const char* const a_step, const std::string& a_message);
         
         }; // end of class 'Job'
             
@@ -100,7 +100,7 @@ namespace casper
          * @param o_response JSON object.
          */
         template <typename S, S doneValue>
-        void ::casper::job::Base<S, doneValue>::Run (const int64_t& a_id, const Json::Value& a_payload, cc::easy::job::Job::Response& o_response)
+        void ::casper::job::Base<S, doneValue>::Run (const uint64_t& a_id, const Json::Value& a_payload, cc::easy::job::Job::Response& o_response)
         {
             // ... sanity check ...
             CC_DEBUG_FAIL_IF_NOT_AT_THREAD(::casper::job::Basic<S>::thread_id_);
@@ -196,7 +196,7 @@ namespace casper
          * @param a_message Message to log.
          */
         template <typename S, S doneValue>
-        void ::casper::job::Base<S, doneValue>::Log (const int a_level, const char* const a_step, const std::string& a_message)
+        void ::casper::job::Base<S, doneValue>::Log (const size_t a_level, const char* const a_step, const std::string& a_message)
         {
             if ( a_level == CC_JOB_LOG_LEVEL_ERR ) {
                 CASPER_JOB_LOG(a_level, a_step, CC_JOB_LOG_COLOR(RED) "%s" CC_LOGS_LOGGER_RESET_ATTRS, a_message.c_str());
